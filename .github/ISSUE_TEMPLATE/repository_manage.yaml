@@ -1,5 +1,5 @@
 name: Repository Management
-description: Want to change something in the repository structure or settings?
+description: Want to change something in the repository or need to contact the manager?
 assignees: "Captniz"
 title: "[Repo]: "
 labels: ["repo management"]
@@ -18,7 +18,7 @@ body:
       attributes:
           label: What do you need?
           description: What changes do you wish to apply to the repository configuration 
-          placeholder: Tell us what you see!
+          placeholder: Tell us what you need!
       validations:
           required: true
     - type: upload
