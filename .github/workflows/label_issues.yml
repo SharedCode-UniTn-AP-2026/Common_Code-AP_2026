@@ -31,7 +31,6 @@ jobs:
                   script: |
                       const body = context.payload.issue.body || '';
 
-                      // Extract the selection under ### feature or similar markdown heading rendered by GitHub Forms
                       const match = body.match(/###\s*feature\s*\n+([^\n\r]+)/i);
 
                       if (match && match[1]) {
@@ -72,10 +71,9 @@ jobs:
                   script: |
                       const org = 'SharedCode-UniTn-AP-2026';
 
-                      // Team mapping and member assignees
                       const teamMapping = {
-                        'geometry': { teamSlug: 'red', members: ['PedroniMichele'] },
-                        'types': { teamSlug: 'blue', members: ['09tommy05'] }
+                        'geometry': { teamSlug: 'Rusty_Crab', members: ['Eneo-org', 'alterax05', 'lalla2306', 'Iv25k5'] },
+                        'types': { teamSlug: 'yyy', members: ['xxx'] }
                       };
 
                       // Fetch the latest issue details to get fresh labels
