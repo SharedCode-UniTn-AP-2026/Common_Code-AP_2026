@@ -1,5 +1,5 @@
 [package]
-name = "ap-2026-common-code-types"
+name = "ap-2026-common-code-shared"
 version = "0.1.0"
 edition = "2024"
 

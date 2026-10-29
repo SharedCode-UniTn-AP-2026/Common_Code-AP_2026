@@ -5,4 +5,4 @@
 #![forbid(missing_docs)]
 
 pub use geometry;
-pub use types;
+pub use shared;

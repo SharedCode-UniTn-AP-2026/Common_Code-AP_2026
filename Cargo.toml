@@ -5,10 +5,10 @@ edition = "2024"
 
 [dependencies]
 geometry = { package = "ap-2026-common-code-geometry", path = "src/geometry" }
-types = { package = "ap-2026-common-code-types", path = "src/types" }
+shared = { package = "ap-2026-common-code-shared", path = "src/shared" }
 
 [workspace]
 members = [
     "src/geometry",
-    "src/types"
+    "src/shared"
 ]
