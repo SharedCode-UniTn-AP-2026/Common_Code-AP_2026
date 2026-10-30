@@ -1,7 +1,7 @@
 ///TODO: Missing docs for Direction
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Direction {
-    ///TODO: Missing docs for Direction
+    ///TODO: Missing docs for Direction Uau a comment
     East,
     ///TODO: Missing docs for Direction
     NorthEast,
