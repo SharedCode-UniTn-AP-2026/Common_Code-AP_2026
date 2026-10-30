@@ -5,6 +5,7 @@
 #![deny(clippy::pedantic)]
 #![deny(missing_docs)]
 
-fn helo() {
+///Just a test
+pub fn helo() {
     println!("helo");
 }
