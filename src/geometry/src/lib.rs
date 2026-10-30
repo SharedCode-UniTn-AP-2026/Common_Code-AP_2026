@@ -1,4 +1,4 @@
-//! Geometry types and operations shared by the project. LALALAL
+//! Geometry types and operations shared by the project.
 
 //! Do not change these
 #![deny(unsafe_code)]
