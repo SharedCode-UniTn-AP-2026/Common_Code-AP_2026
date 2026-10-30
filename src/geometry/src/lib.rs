@@ -4,3 +4,7 @@
 #![deny(unsafe_code)]
 #![deny(clippy::pedantic)]
 #![deny(missing_docs)]
+
+fn helo() {
+    println!("helo");
+}
