@@ -85,6 +85,7 @@ impl Cell {
     /// # Panics
     ///
     /// Panics if `q + r < -i32::MAX` or `q + r > i32::MAX`
+    ///
     /// This never happens for a cell inside a [`Map`](crate::Map)
     ///
     /// # Examples
@@ -108,6 +109,7 @@ impl Cell {
     ///
     /// Panics if `q + dq` or `r + dr` overflows `i32`, where
     /// `(dq, dr)` is [`direction.offset()`](Direction::offset).
+    ///
     /// This can only happen when `q` or `r` is `i32::MIN` or `i32::MAX`,
     /// so it never happens for a cell inside a [`Map`](crate::Map).
     ///
@@ -154,5 +156,133 @@ impl Cell {
             .and_then(|sum| sum.checked_add(ds))
             .expect("distance overflow u32")
             / 2
+    }
+
+    /// Return the six cells adjacent to `self`.
+    ///
+    /// The cells are in the same order as the [`Direction`] variants:
+    /// `East`, `NorthEast`, `NorthWest`, `West`, `SouthWest`, `SouthEast`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any call to [`neighbour`](Cell::neighbour) panics, which
+    /// never happens for a cell inside a [`Map`](crate::Map).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ap_2026_common_code_geometry::Cell;
+    ///
+    /// let c = Cell { q: 0, r: 0 };
+    /// assert_eq!(
+    ///     c.neighbours(),
+    ///     [
+    ///         Cell { q: 1, r: 0 },  // East
+    ///         Cell { q: 1, r: -1 }, // NorthEast
+    ///         Cell { q: 0, r: -1 }, // NorthWest
+    ///         Cell { q: -1, r: 0 }, // West
+    ///         Cell { q: -1, r: 1 }, // SouthWest
+    ///         Cell { q: 0, r: 1 },  // SouthEast
+    ///     ]
+    /// );
+    /// ```
+    #[must_use]
+    pub fn neighbours(self) -> [Cell; 6] {
+        [
+            self.neighbour(Direction::East),
+            self.neighbour(Direction::NorthEast),
+            self.neighbour(Direction::NorthWest),
+            self.neighbour(Direction::West),
+            self.neighbour(Direction::SouthWest),
+            self.neighbour(Direction::SouthEast),
+        ]
+    }
+
+    /// Return an iterator over all the cells **within** distance `radius` of
+    /// `self`, including `self` itself.
+    ///
+    /// The iterator yields `3 * radius * (radius + 1) + 1` cells, which
+    /// form a hexagon. Cells are yielded in ascending order (by `q`, then
+    /// by `r`).
+    ///
+    /// # Panics
+    ///
+    /// - Panics immediately if `radius > i32::MAX`.
+    /// - Panics during iteration if a coordinate of a yielded cell
+    ///   overflows `i32`. This never happens for a cell inside a
+    ///   [`Map`](crate::Map).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ap_2026_common_code_geometry::Cell;
+    ///
+    /// let center = Cell { q: 0, r: 0 };
+    ///
+    /// assert_eq!(center.disc(0).collect::<Vec<_>>(), vec![center]);
+    ///
+    /// let disc: Vec<Cell> = center.disc(1).collect();
+    /// assert_eq!(disc.len(), 7);
+    /// assert!(disc.iter().all(|c| center.distance(*c) <= 1));
+    /// ```
+    pub fn disc(self, radius: u32) -> impl Iterator<Item = Cell> {
+        let r = i32::try_from(radius).expect("disc radius overflows i32");
+
+        (-r..=r).flat_map(move |dq| {
+            // Lower and upper bounds of `dr`, so that the result is a
+            // hexagon and not a parallelogram.
+            let (lo, hi) = if dq >= 0 { (-r, r - dq) } else { (-r - dq, r) };
+
+            (lo..=hi).map(move |dr| Cell {
+                q: self.q.checked_add(dq).expect("disc q overflows i32"),
+                r: self.r.checked_add(dr).expect("disc r overflows i32"),
+            })
+        })
+    }
+
+    /// Return an iterator over all the cells at distance exactly `radius`
+    /// from `self`.
+    ///
+    /// For `radius == 0` the only cell yielded is `self`; otherwise the
+    /// iterator yields `6 * radius` cells. Cells are yielded in ascending
+    /// order (by `q`, then by `r`).
+    ///
+    /// # Panics
+    ///
+    /// - Panics immediately if `radius > i32::MAX`.
+    /// - Panics (in debug builds) during iteration if a coordinate of a
+    ///   yielded cell overflows `i32`. This never happens for a cell inside
+    ///   a [`Map`](crate::Map).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ap_2026_common_code_geometry::Cell;
+    ///
+    /// let center = Cell { q: 0, r: 0 };
+    ///
+    /// assert_eq!(center.ring(0).collect::<Vec<_>>(), vec![center]);
+    ///
+    /// let ring: Vec<Cell> = center.ring(2).collect();
+    /// assert_eq!(ring.len(), 12);
+    /// assert!(ring.iter().all(|c| center.distance(*c) == 2));
+    /// ```
+    pub fn ring(self, radius: u32) -> impl Iterator<Item = Cell> {
+        let r = i32::try_from(radius).expect("ring radius overflows i32");
+
+        (-r..=r).flat_map(move |dq| {
+            let (lo, hi) = if dq >= 0 { (-r, r - dq) } else { (-r - dq, r) };
+            let step = if dq.unsigned_abs() == r.unsigned_abs() {
+                // On the edge columns (|dq| == r) every cell is in the ring.
+                1
+            } else {
+                // Otherwise only the two endpoints, `lo` and `hi`, are in the ring.
+                lo.abs_diff(hi) as usize
+            };
+            (lo..=hi).step_by(step).map(move |dr| Cell {
+                q: self.q + dq,
+                r: self.r + dr,
+            })
+        })
     }
 }
