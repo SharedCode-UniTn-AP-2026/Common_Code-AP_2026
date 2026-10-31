@@ -72,7 +72,7 @@ jobs:
                       const org = 'SharedCode-UniTn-AP-2026';
 
                       const teamMapping = {
-                        'geometry': { teamSlug: 'Rusty_Crab', members: ['Eneo-org', 'alterax05', 'lalla2306', 'Iv25k5'] },
+                        'geometry': { teamSlug: 'Rusty_Crab', members: ['Eneo-org', 'alterax05', 'LauraPrandina', 'Iv25k5'] },
                         'types': { teamSlug: 'yyy', members: ['xxx'] }
                       };
 
