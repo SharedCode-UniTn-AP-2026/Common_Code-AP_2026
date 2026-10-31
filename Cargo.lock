@@ -13,6 +13,9 @@ dependencies = [
 [[package]]
 name = "ap-2026-common-code-geometry"
 version = "0.1.0"
+dependencies = [
+ "ap-2026-common-code-shared",
+]
 
 [[package]]
 name = "ap-2026-common-code-shared"

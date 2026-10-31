@@ -12,3 +12,6 @@ members = [
     "src/geometry",
     "src/shared"
 ]
+
+[workspace.dependencies]
+shared = { package = "ap-2026-common-code-shared", path = "src/shared", version = "0.1.0" }
