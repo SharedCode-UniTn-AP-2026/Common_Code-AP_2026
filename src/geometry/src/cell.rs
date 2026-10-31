@@ -1,28 +1,66 @@
-///TODO: Missing docs for Direction
+/// One of the six directions from a hexagonal cell to its neighbors.
+///
+/// Variants are listed counter-clockwise starting from [`East`](Direction::East),
+/// each one 60° from the previous, so their discriminants go from `0` to `5`
+/// in that order. [`Direction::offset`] gives the axial `(dq, dr)` step of each one.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Direction {
-    ///TODO: Missing docs for Direction
+    /// Offset `(1, 0)`: `q` increases.
     East,
-    ///TODO: Missing docs for Direction
+    /// Offset `(1, -1)`: `q` increases, `r` decreases.
     NorthEast,
-    ///TODO: Missing docs for Direction
+    /// Offset `(0, -1)`: `r` decreases.
     NorthWest,
-    ///TODO: Missing docs for Direction
+    /// Offset `(-1, 0)`: `q` decreases.
     West,
-    ///TODO: Missing docs for Direction
+    /// Offset `(-1, 1)`: `q` decreases, `r` increases.
     SouthWest,
-    ///TODO: Missing docs for Direction
+    /// Offset `(0, 1)`: `r` increases.
     SouthEast,
 }
 
 impl Direction {
-    /// TODO: missing docs for `offset`
+    /// Return the axial offset `(dq, dr)` of one step in this direction.
+    ///
+    /// Adding it to a cell's `(q, r)` gives the neighbour in that direction,
+    /// as [`Cell::neighbour`] does.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ap_2026_common_code_geometry::Direction;
+    ///
+    /// assert_eq!(Direction::NorthEast.offset(), (1, -1));
+    /// ```
+    #[must_use]
     pub fn offset(self) -> (i32, i32) {
-        todo!();
+        match self {
+            Direction::East => (1, 0),
+            Direction::NorthEast => (1, -1),
+            Direction::NorthWest => (0, -1),
+            Direction::West => (-1, 0),
+            Direction::SouthWest => (-1, 1),
+            Direction::SouthEast => (0, 1),
+        }
     }
-    /// TODO: missing docs for `relative_angle`
+    /// Return the angle between `self` and `other`, counted in 60° steps.
+    ///
+    /// The result is always between `0` (same direction) and `3`
+    /// (opposite directions), and it is
+    /// symmetric: `a.relative_angle(b) == b.relative_angle(a)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ap_2026_common_code_geometry::Direction;
+    ///
+    /// // East and SouthWest are 120° apart (going clockwise).
+    /// assert_eq!(Direction::East.relative_angle(Direction::SouthWest), 2);
+    /// ```
+    #[must_use]
     pub fn relative_angle(self, other: Direction) -> u8 {
-        todo!()
+        let diff = (self as u8).abs_diff(other as u8);
+        diff.min(6 - diff)
     }
 }
 
