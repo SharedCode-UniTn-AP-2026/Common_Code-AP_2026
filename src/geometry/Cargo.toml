@@ -7,3 +7,4 @@ edition = "2024"
 path = "src/lib.rs"
 
 [dependencies]
+ap-2026-common-code-shared = { path = "../shared" }
