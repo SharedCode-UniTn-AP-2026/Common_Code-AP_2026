@@ -1,17 +1,17 @@
-use ap_2026_common_code_shared::IslandId;
+use shared::IslandId;
 /// The terrain of a map cell, classified as water or land.
 ///
 /// Water is either open (`Clear`) or rocky (`Rock`). Land either belongs to an
 /// island (`Island`), identified by its island ID, or is unowned (`Cliff`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
-pub enum Terrain{
+pub enum Terrain {
     /// Open water.
     Clear,
     /// Water, but foul. Entering costs half a full hull, rounded up.
     Rock,
     /// Land, and part of an Island’s footprint.
     Island(IslandId),
-    ///land nobody owns.
+    ///Land nobody owns.
     Cliff,
 }
 
