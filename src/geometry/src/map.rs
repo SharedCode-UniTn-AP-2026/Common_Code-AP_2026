@@ -58,8 +58,7 @@ impl Map {
             starts.push(index);
             let r_min = (-rad).max(-rad - q);
             let r_max = rad.min(rad - q);
-            index += usize::try_from(r_max - r_min + 1)
-                .expect("Column length must be non negative");
+            index += usize::try_from(r_max - r_min + 1).expect("Column length must be non negative");
         }
         starts
     }
@@ -108,12 +107,9 @@ impl Map {
     /// [`Map::contains`] returns `true` for the cell.
     fn cell_index(&self, cell: Cell) -> usize {
         let Cell { q, r } = cell;
-        let radius = i32::try_from(self.radius)
-            .expect("Map radius must fit in i32");
-        let column = usize::try_from(q + radius)
-            .expect("Column index must be non-negative");
-        let offset = usize::try_from(r - max(-radius, -radius - q))
-            .expect("Cell offset must be non-negative");
+        let radius = i32::try_from(self.radius).expect("Map radius must fit in i32");
+        let column = usize::try_from(q + radius).expect("Column index must be non-negative");
+        let offset = usize::try_from(r - max(-radius, -radius - q)).expect("Cell offset must be non-negative");
         self.starts[column] + offset
     }
     /// Create a complete map from cell/terrain pairs in any input order.
