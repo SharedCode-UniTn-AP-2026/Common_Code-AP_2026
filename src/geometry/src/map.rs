@@ -64,7 +64,7 @@ impl Map {
     }
 
     /// Detects every duplicate when `terrain` is sorted by `(q, r)`.
-    fn check_duplicates(terrain: &Vec<(Cell, Terrain)>) -> bool {
+    fn check_duplicates(terrain: &[(Cell, Terrain)]) -> bool {
         terrain.windows(2).any(|x| {
             let first = x[0];
             let second = x[1];
@@ -80,9 +80,8 @@ impl Map {
     /// Panics if `expected_len` exceeds `terrain.len()` or if a checked cell
     /// passes the `q` and `r` bounds but [`Cell::s`] overflows. The latter
     /// cannot occur for radii accepted by [`Map::try_new`].
-    fn check_out_of_map(expected_len: usize, terrain: &Vec<(Cell, Terrain)>, radius: u32) -> bool {
-        for i in 0..expected_len {
-            let cell = terrain[i].0;
+    fn check_out_of_map(expected_len: usize, terrain: &[(Cell, Terrain)], radius: u32) -> bool {
+        for (cell, _) in terrain.iter().take(expected_len) {
             if !(cell.q.unsigned_abs() <= radius && cell.r.unsigned_abs() <= radius) {
                 return true;
             }
