@@ -8,3 +8,4 @@ path = "src/lib.rs"
 
 [dependencies]
 shared.workspace = true
+thiserror = "2.0.21"

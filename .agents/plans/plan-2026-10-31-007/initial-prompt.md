@@ -1,0 +1,4 @@
+in @file:terrain.rs add the documentation of `is_land` and `is_water`[@terrain.rs](file:///Users/lauraprandina/Desktop/uni/advanced/geometry/Common_Code-AP_2026/src/geometry/src/terrain.rs)[@terrain.rs](file:///Users/lauraprandina/Desktop/uni/advanced/geometry/Common_Code-AP_2026/src/geometry/src/terrain.rs)
+<context ref="file:///Users/lauraprandina/Desktop/uni/advanced/geometry/Common_Code-AP_2026/src/geometry/src/terrain.rs">
+{"description":"Byte offsets of selected text in filePath.\nUse these offsets to read selected text if it is required.\nstartOffset is inclusive, endOffset is exclusive.","offsetEncoding":"byte","selections":[{"startOffset":720,"endOffset":728}]}
+</context>[@terrain.rs](file:///Users/lauraprandina/Desktop/uni/advanced/geometry/Common_Code-AP_2026/src/geometry/src/terrain.rs)

@@ -1,0 +1,1 @@
+in @file:terrain.rs add the documentation of enum Terrain[@terrain.rs](file:///Users/lauraprandina/Desktop/uni/advanced/geometry/Common_Code-AP_2026/src/geometry/src/terrain.rs)[@terrain.rs](file:///Users/lauraprandina/Desktop/uni/advanced/geometry/Common_Code-AP_2026/src/geometry/src/terrain.rs)
