@@ -1,0 +1,1 @@
+Replace the TODO doc comments on is_land and is_water with exact return-value guarantees using links to the corresponding Terrain variants. Preserve behavior and existing user edits. Review the change and check formatting.
