@@ -77,11 +77,10 @@ impl Map {
     ///
     /// # Panics
     ///
-    /// Panics if `expected_len` exceeds `terrain.len()` or if a checked cell
-    /// passes the `q` and `r` bounds but [`Cell::s`] overflows. The latter
-    /// cannot occur for radii accepted by [`Map::try_new`].
-    fn check_out_of_map(expected_len: usize, terrain: &[(Cell, Terrain)], radius: u32) -> bool {
-        for (cell, _) in terrain.iter().take(expected_len) {
+    /// May panic if [`Cell::s`] overflows.
+    /// This cannot occur for radii accepted by [`Map::try_new`].
+    fn check_out_of_map(terrain: &[(Cell, Terrain)], radius: u32) -> bool {
+        for (cell, _) in terrain {
             if !(cell.q.unsigned_abs() <= radius && cell.r.unsigned_abs() <= radius) {
                 return true;
             }
@@ -155,7 +154,7 @@ impl Map {
             return Err(Error::ErrCellDup);
         }
 
-        if Self::check_out_of_map(expected_len, &terrain, radius) {
+        if Self::check_out_of_map(&terrain, radius) {
             return Err(Error::ErrCellOut);
         }
 
