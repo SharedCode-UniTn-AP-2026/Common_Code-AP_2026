@@ -9,6 +9,20 @@ use crate::Round;
 /// The number of Ships is fixed at six.
 ///
 /// Field values and combinations are not validated by this type.
+///
+///
+/// # Examples
+///
+/// ```
+/// use ap_2026_common_code_shared::Params;
+///
+/// let params = Params::default()
+///     .with_vision_range(8)
+///     .with_bombard_range(3);
+///
+/// assert_eq!(params.vision_range, 8);
+/// assert_eq!(params.bombard_range, 3);
+/// ```
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Params {
@@ -135,6 +149,17 @@ impl Params {
     ///
     /// Rock damage is half the hull strength, rounded up,
     /// according to Main 2.2.
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ap_2026_common_code_shared::Params;
+    ///
+    /// let params = Params::default().with_hull_strength(5);
+    ///
+    /// assert_eq!(params.rock_damage(), 3);
+    /// ```
     #[must_use]
     pub fn rock_damage(&self) -> u32 {
         self.hull_strength.div_ceil(2)

@@ -16,11 +16,13 @@ ChatGPT assisted with the preparation of `plan.md` and `result.md`.
 - Implemented `rock_damage()` using `hull_strength.div_ceil(2)`.
 - Documented field meanings, units and relevant limitations.
 - Added three integration tests in `src/shared/tests/params.rs`, covering default values, builder methods and rock damage.
+- Added two Rustdoc examples demonstrating `Params::default()`, builder methods, and `rock_damage()`.
+- Removed the `test_with_methods` integration test following reviewer feedback.
 
 ## Validation
 
-- `cargo fmt --all -- --check` — passed.
-- `cargo test -p ap-2026-common-code-shared` — passed: 1 unit test and 3 integration tests.
-- `cargo clippy -p ap-2026-common-code-shared --all-targets -- -D warnings` — passed without warnings.
-- `cargo doc -p ap-2026-common-code-shared --no-deps` — passed.
-- `git diff --check` — passed.
+- `cargo test -p ap-2026-common-code-shared` passed: 1 unit test, 2 integration tests, and 2 doctests.
+- `cargo clippy -p ap-2026-common-code-shared --all-targets -- -D warnings` passed.
+- `cargo fmt --all -- --check` passed.
+- `cargo doc -p ap-2026-common-code-shared --no-deps` passed.
+- `git diff --check` passed.
