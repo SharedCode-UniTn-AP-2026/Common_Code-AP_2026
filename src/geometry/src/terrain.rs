@@ -17,10 +17,12 @@ pub enum Terrain {
 
 impl Terrain {
     /// Returns `true` if this terrain is [`Terrain::Island`] or [`Terrain::Cliff`].
+    #[must_use]
     pub fn is_land(&self) -> bool {
         matches!(self, Terrain::Island(_) | Terrain::Cliff)
     }
     /// Returns `true` if this terrain is [`Terrain::Rock`] or [`Terrain::Clear`].
+    #[must_use]
     pub fn is_water(&self) -> bool {
         matches!(self, Terrain::Rock | Terrain::Clear)
     }
