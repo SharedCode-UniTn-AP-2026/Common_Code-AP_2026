@@ -2,6 +2,7 @@
   - changed-files:
       - any-glob-to-any-file: 'geometry/**/*'
 
-'types':
+'wind':
   - changed-files:
-      - any-glob-to-any-file: 'types/**/*'
+      - any-glob-to-any-file: 'wind/**/*'
+

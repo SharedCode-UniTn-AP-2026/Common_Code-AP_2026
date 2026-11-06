@@ -73,7 +73,7 @@ jobs:
 
                       const teamMapping = {
                         'geometry': { teamSlug: 'Rusty_Crab', members: ['Eneo-org', 'alterax05', 'LauraPrandina', 'Iv25k5'] },
-                        'types': { teamSlug: 'yyy', members: ['xxx'] }
+                        'wind': { teamSlug: 'zev', members: ['Nikicoraz', 'FedeBrus', 'ManMls', 'bzraa'] }
                       };
 
                       // Fetch the latest issue details to get fresh labels
