@@ -40,7 +40,7 @@ pub struct VisibilityCase {
     pub vectors: &'static [VisibilityVector],
 }
 
-/// Reference visibility cases from Protocol §3.2.
+/// Reference visibility cases from Protocol 3.2.
 pub const PROTOCOL_3_2_CASES: &[VisibilityCase] = &[
     VisibilityCase {
         name: "clear_clear",
@@ -359,4 +359,122 @@ pub const OUT_OF_MAP_CASES: &[VisibilityCase] = &[VisibilityCase {
         vision_range: 1,
         expected: false,
     }],
+}];
+
+/// Reference visibility cases from the six corners of a hexagonal map.
+pub const CORNER_CASES: &[VisibilityCase] = &[VisibilityCase {
+    name: "corner_range",
+    radius: 2,
+    terrain: &[],
+    vectors: &[
+        VisibilityVector {
+            from: Cell { q: 2, r: 0 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 2,
+            expected: true,
+        },
+        VisibilityVector {
+            from: Cell { q: 2, r: 0 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 1,
+            expected: false,
+        },
+        VisibilityVector {
+            from: Cell { q: 2, r: -2 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 2,
+            expected: true,
+        },
+        VisibilityVector {
+            from: Cell { q: 2, r: -2 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 1,
+            expected: false,
+        },
+        VisibilityVector {
+            from: Cell { q: 0, r: -2 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 2,
+            expected: true,
+        },
+        VisibilityVector {
+            from: Cell { q: 0, r: -2 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 1,
+            expected: false,
+        },
+        VisibilityVector {
+            from: Cell { q: -2, r: 0 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 2,
+            expected: true,
+        },
+        VisibilityVector {
+            from: Cell { q: -2, r: 0 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 1,
+            expected: false,
+        },
+        VisibilityVector {
+            from: Cell { q: -2, r: 2 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 2,
+            expected: true,
+        },
+        VisibilityVector {
+            from: Cell { q: -2, r: 2 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 1,
+            expected: false,
+        },
+        VisibilityVector {
+            from: Cell { q: 0, r: 2 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 2,
+            expected: true,
+        },
+        VisibilityVector {
+            from: Cell { q: 0, r: 2 },
+            to: Cell { q: 0, r: 0 },
+            vision_range: 1,
+            expected: false,
+        },
+        // Opposite corners across the map's full diameter.
+        VisibilityVector {
+            from: Cell { q: 2, r: 0 },
+            to: Cell { q: -2, r: 0 },
+            vision_range: 4,
+            expected: true,
+        },
+        VisibilityVector {
+            from: Cell { q: 2, r: 0 },
+            to: Cell { q: -2, r: 0 },
+            vision_range: 3,
+            expected: false,
+        },
+        VisibilityVector {
+            from: Cell { q: 2, r: -2 },
+            to: Cell { q: -2, r: 2 },
+            vision_range: 4,
+            expected: true,
+        },
+        VisibilityVector {
+            from: Cell { q: 2, r: -2 },
+            to: Cell { q: -2, r: 2 },
+            vision_range: 3,
+            expected: false,
+        },
+        VisibilityVector {
+            from: Cell { q: 0, r: -2 },
+            to: Cell { q: 0, r: 2 },
+            vision_range: 4,
+            expected: true,
+        },
+        VisibilityVector {
+            from: Cell { q: 0, r: -2 },
+            to: Cell { q: 0, r: 2 },
+            vision_range: 3,
+            expected: false,
+        },
+    ],
 }];

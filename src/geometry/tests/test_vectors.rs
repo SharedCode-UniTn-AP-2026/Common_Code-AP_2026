@@ -1,18 +1,19 @@
 use ap_2026_common_code_geometry::{
     Cell, Map, Terrain,
-    test_vectors::{ISLAND_CASES, OBSTACLE_CASES, PROTOCOL_3_2_CASES, RANGE_CASES, SURROUNDED_CASES},
+    test_vectors::{CORNER_CASES, ISLAND_CASES, OBSTACLE_CASES, PROTOCOL_3_2_CASES, RANGE_CASES, SURROUNDED_CASES},
     visible,
 };
 use std::collections::BTreeMap;
 
 #[test]
-fn test_protocol_3_2_vectors() {
+fn test_public_visibility_vectors() {
     for case in PROTOCOL_3_2_CASES
         .iter()
         .chain(RANGE_CASES.iter())
         .chain(OBSTACLE_CASES.iter())
         .chain(ISLAND_CASES.iter())
         .chain(SURROUNDED_CASES.iter())
+        .chain(CORNER_CASES.iter())
     {
         // Build a complete clear-water map.
         let mut cells: BTreeMap<Cell, Terrain> = Cell { q: 0, r: 0 }
