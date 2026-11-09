@@ -27,6 +27,10 @@ HEADERS = {
 
 BRANCH_PATTERN = re.compile(r"^(.+?)-(feat|fix|[a-z]+)-(.+)$")
 
+def branch_url(branch):
+    from urllib.parse import quote
+
+    return f"https://github.com/{REPO}/tree/{quote(branch, safe='/')}"
 
 def render_markdown(text):
     """
@@ -231,7 +235,13 @@ def render_latest(branches, branch_type):
 
         <small>LATEST {branch_type.upper()}</small>
 
-        <h3>{html.escape(latest["feature"])}</h3>
+        <h3>
+            <a href="{html.escape(branch_url(latest['branch']), quote=True)}"
+               target="_blank"
+               rel="noopener noreferrer">
+                {html.escape(latest['feature'])}
+            </a>
+        </h3>
 
         <a href="{html.escape(latest["url"])}"
            target="_blank"
@@ -268,7 +278,6 @@ def render_most_active_branch(pull_requests, module):
     branch_counts = defaultdict(int)
 
     for pr in pull_requests:
-
         target_branch = pr["base"]["ref"]
 
         parsed = parse_branch(target_branch)
@@ -291,10 +300,7 @@ def render_most_active_branch(pull_requests, module):
         </div>
         """
 
-    most_active = max(
-        branch_counts,
-        key=lambda branch: branch_counts[branch]
-    )
+    most_active = max(branch_counts, key=lambda branch: branch_counts[branch])
 
     count = branch_counts[most_active]
 
@@ -303,7 +309,13 @@ def render_most_active_branch(pull_requests, module):
 
         <small>MOST ACTIVE BRANCH</small>
 
-        <h3>{html.escape(most_active)}</h3>
+        <h3>
+            <a href="{html.escape(branch_url(most_active), quote=True)}"
+               target="_blank"
+               rel="noopener noreferrer">
+                {html.escape(most_active)}
+            </a>
+        </h3>
 
         <p>{count} merged PR(s)</p>
 
@@ -323,76 +335,97 @@ def render_history(branches):
     if not all_entries:
         return "<p>No pull requests found for this module.</p>"
 
-    rows = []
+    def render_rows(entries):
 
-    for item in all_entries:
-        description = render_markdown(item.get("description", ""))
+        rows = []
 
-        rows.append(f"""
-        <tr>
+        for item in entries:
+            description = render_markdown(item.get("description", ""))
 
-            <td>
-                <code>{html.escape(item["branch"])}</code>
-            </td>
+            rows.append(f"""
+            <tr>
 
-            <td>
+                <td>
+                    <a href="{html.escape(branch_url(item['branch']), quote=True)}"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        <code>{html.escape(item['branch'])}</code>
+                    </a>
+                </td>
 
-                <a href="{html.escape(item["url"])}"
-                   target="_blank"
-                   rel="noopener noreferrer">
+                <td>
+                    <a href="{html.escape(item["url"])}"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        #{item["number"]} - {html.escape(item["title"])}
+                    </a>
 
-                    #{item["number"]} - {html.escape(item["title"])}
+                    <details class="pr-description">
+                        <summary>Show PR description</summary>
 
-                </a>
+                        <div class="description-content">
+                            {description}
+                        </div>
+                    </details>
+                </td>
 
-                <details class="pr-description">
+                <td>{html.escape(item["author"])}</td>
 
-                    <summary>Show PR description</summary>
+                <td>
+                    <span class="status {html.escape(item["state"])}">
+                        {html.escape(item["state"])}
+                    </span>
+                </td>
 
-                    <div class="description-content">
-                        {description}
-                    </div>
+                <td>{format_date(item["date"])}</td>
 
-                </details>
+            </tr>
+            """)
 
-            </td>
+        return "".join(rows)
 
-            <td>{html.escape(item["author"])}</td>
+    def render_table(entries):
 
-            <td>
-                <span class="status {html.escape(item["state"])}">
-                    {html.escape(item["state"])}
-                </span>
-            </td>
+        return f"""
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Branch</th>
+                        <th>Pull Request</th>
+                        <th>Author</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
 
-            <td>{format_date(item["date"])}</td>
+                <tbody>
+                    {render_rows(entries)}
+                </tbody>
+            </table>
+        </div>
+        """
 
-        </tr>
-        """)
+    latest_entries = all_entries[:3]
+    remaining_entries = all_entries[3:]
 
-    return f"""
-    <div class="table-container">
+    history_html = render_table(latest_entries)
 
-        <table>
+    if remaining_entries:
+        history_html += f"""
+        <details class="history-expand">
 
-            <thead>
-                <tr>
-                    <th>Branch</th>
-                    <th>Pull Request</th>
-                    <th>Author</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                </tr>
-            </thead>
+            <summary>
+                Show all {len(all_entries)} pull requests
+                ({len(remaining_entries)} more)
+            </summary>
 
-            <tbody>
-                {"".join(rows)}
-            </tbody>
+            {render_table(remaining_entries)}
 
-        </table>
+        </details>
+        """
 
-    </div>
-    """
+    return history_html
 
 
 def main():
@@ -503,6 +536,28 @@ def main():
                     max-height: 300px;
                     overflow-y: auto;
                     }}
+
+                    .history-expand {{
+                        margin-top: 15px;
+                        }}
+
+                    .history-expand summary {{
+                        cursor: pointer;
+                        color: #2563eb;
+                        font-weight: bold;
+                        padding: 12px;
+                        background: #f5f6fa;
+                        border-radius: 8px;
+                        user-select: none;
+                        }}
+
+                    .history-expand summary:hover {{
+                        background: #eef2ff;
+                    }}
+
+                    .history-expand[open] summary {{
+                        margin-bottom: 10px;
+                        }}
             </style>
         </head>
 
