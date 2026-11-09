@@ -195,7 +195,7 @@ def generate_dashboard(pull_requests):
             <div class="latest">
                 {render_latest(branches, "feat")}
                 {render_latest(branches, "fix")}
-                {render_most_active_branch(branches)}
+                {render_most_active_branch(pull_requests, module)}
             </div>
 
             <h3>Branch history</h3>
@@ -263,23 +263,38 @@ def render_latest(branches, branch_type):
     """
 
 
-def render_most_active_branch(branches):
+def render_most_active_branch(pull_requests, module):
 
     branch_counts = defaultdict(int)
 
-    for entries in branches.values():
-        for item in entries:
-            branch_counts[item["branch"]] += 1
+    for pr in pull_requests:
+
+        target_branch = pr["base"]["ref"]
+
+        parsed = parse_branch(target_branch)
+
+        if not parsed:
+            continue
+
+        if parsed["module"] != module:
+            continue
+
+        # Count only merged PRs
+        if pr["merged_at"]:
+            branch_counts[target_branch] += 1
 
     if not branch_counts:
         return """
         <div class="latest-card">
             <small>MOST ACTIVE BRANCH</small>
-            <p>No branches found</p>
+            <p>No merged PRs found</p>
         </div>
         """
 
-    most_active = max(branch_counts, key=lambda branch: branch_counts[branch])
+    most_active = max(
+        branch_counts,
+        key=lambda branch: branch_counts[branch]
+    )
 
     count = branch_counts[most_active]
 
@@ -290,7 +305,7 @@ def render_most_active_branch(branches):
 
         <h3>{html.escape(most_active)}</h3>
 
-        <p>{count} PR(s)</p>
+        <p>{count} merged PR(s)</p>
 
     </div>
     """
