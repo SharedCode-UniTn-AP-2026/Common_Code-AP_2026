@@ -307,7 +307,7 @@ def render_most_active_branch(pull_requests, module):
     return f"""
     <div class="latest-card">
 
-        <small>MOST ACTIVE BRANCH/MAIN BRANCH</small>
+        <small>MOST ACTIVE BRANCH / MAIN BRANCH</small>
 
         <h3>
             <a href="{html.escape(branch_url(most_active), quote=True)}"
