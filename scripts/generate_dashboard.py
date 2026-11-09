@@ -202,7 +202,7 @@ def generate_dashboard(pull_requests):
                 {render_most_active_branch(pull_requests, module)}
             </div>
 
-            <h3>Branch history</h3>
+            <h3>PR history</h3>
 
             {render_history(branches)}
         </section>
@@ -307,7 +307,7 @@ def render_most_active_branch(pull_requests, module):
     return f"""
     <div class="latest-card">
 
-        <small>MOST ACTIVE BRANCH</small>
+        <small>MOST ACTIVE BRANCH/MAIN BRANCH</small>
 
         <h3>
             <a href="{html.escape(branch_url(most_active), quote=True)}"
@@ -562,7 +562,7 @@ def main():
         </head>
 
         <body>
-            <h1>Module Development Dashboard</h1>
+            <h1>Module Development Progress Dashboard</h1>
 
             {dashboard}
 
