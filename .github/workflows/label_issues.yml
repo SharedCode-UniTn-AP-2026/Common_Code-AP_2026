@@ -74,6 +74,7 @@ jobs:
                       const teamMapping = {
                         'geometry': { teamSlug: 'Rusty_Crab', members: ['Eneo-org', 'alterax05', 'LauraPrandina', 'Iv25k5'] },
                         'wind': { teamSlug: 'zev', members: ['Nikicoraz', 'FedeBrus', 'ManMls', 'bzraa'] }
+                        'clues': { teamSlug: 'unsafe', members: ['Mionuel', 'theRealWallice', 'ZenSan3', 'zThatIsCrazy'] }
                       };
 
                       // Fetch the latest issue details to get fresh labels

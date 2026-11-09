@@ -6,3 +6,7 @@
   - changed-files:
       - any-glob-to-any-file: 'wind/**/*'
 
+'clues':
+  - changed-files:
+      - any-glob-to-any-file: 'clues/**/*'
+
