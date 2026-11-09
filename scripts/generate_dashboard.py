@@ -8,6 +8,11 @@ from datetime import datetime
 
 REPO = os.environ["REPO"]
 TOKEN = os.environ["GH_TOKEN"]
+MODULES = [
+    module.strip()
+    for module in os.environ.get("MODULES", "").split(",")
+    if module.strip()
+]
 
 API = f"https://api.github.com/repos/{REPO}"
 
@@ -90,6 +95,11 @@ def generate_dashboard(pull_requests):
             continue
 
         module = parsed["module"]
+
+        # Filter modules
+        if MODULES and module not in MODULES:
+            continue
+
         branch_type = parsed["type"]
 
         modules[module][branch_type].append({
@@ -108,7 +118,10 @@ def generate_dashboard(pull_requests):
 
     output = []
 
-    for module in sorted(modules):
+    # Show all requested modules, even if they have no PRs
+    module_names = MODULES if MODULES else sorted(modules)
+
+    for module in module_names:
         branches = modules[module]
 
         output.append(f"""
@@ -126,7 +139,7 @@ def generate_dashboard(pull_requests):
         </section>
         """)
 
-    return "\n".join(output)
+    return "\\n".join(output)
 
 
 def render_latest(branches, branch_type):
