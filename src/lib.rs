@@ -4,7 +4,7 @@
 #![forbid(clippy::pedantic)]
 #![forbid(missing_docs)]
 
+pub use clues;
 pub use geometry;
 pub use shared;
 pub use wind;
-pub use clues;
