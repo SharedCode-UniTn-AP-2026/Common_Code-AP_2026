@@ -40,6 +40,10 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
+      - name: Install dependencies
+        run: |
+            pip install Markdown bleach
+
       - name: Generate dashboard
         env:
           MODULES: "wind,geometry"
