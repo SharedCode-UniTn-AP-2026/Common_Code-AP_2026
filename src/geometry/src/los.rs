@@ -150,7 +150,7 @@ mod test {
         let from = Cell { q: 0, r: 0 };
         let to = Cell { q: 2, r: 1 };
 
-        let n = from.distance(to) as i32;
+        let n = from.distance(to).cast_signed();
 
         assert_eq!(n, 3);
 
