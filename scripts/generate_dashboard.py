@@ -139,7 +139,7 @@ def generate_dashboard(pull_requests):
         </section>
         """)
 
-    return "\\n".join(output)
+    return "".join(output)
 
 
 def render_latest(branches, branch_type):
