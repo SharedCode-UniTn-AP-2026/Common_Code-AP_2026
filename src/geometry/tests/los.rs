@@ -1,27 +1,6 @@
-use crate::{Cell, Map, Terrain};
+use ap_2026_common_code_geometry::{Cell, Map, Terrain, visible};
 use shared::IslandId;
 use std::collections::BTreeMap;
-
-/// Run the test vector for a `visible` function
-/// This function takes a function (the `visible` function or a possible ship implementation) as an input,
-/// and runs all the test cases against it.
-pub fn test_visible<F>(mut visible_fn: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
-    test_visible_same_cell(&mut visible_fn);
-    test_visible_out_of_range(&mut visible_fn);
-    test_visible_clear_path(&mut visible_fn);
-    test_visible_land_blocked(&mut visible_fn);
-    test_visible_cliff_blocked(&mut visible_fn);
-    test_visible_rock(&mut visible_fn);
-    test_visible_boundary_land_water(&mut visible_fn);
-    test_visible_boundary_land_land(&mut visible_fn);
-    test_visible_symmetry(&mut visible_fn);
-    test_visible_endpoints(&mut visible_fn);
-    test_visible_range_boundary(&mut visible_fn);
-    test_visible_multiple_samples(&mut visible_fn);
-}
 
 /// Builds a complete clear-water map with the specified terrain replacements.
 ///
@@ -45,20 +24,17 @@ fn test_map(radius: u32, replacements: &[(Cell, Terrain)]) -> Map {
 }
 
 // Checks that a cell can see itself even with zero vision range and land terrain.
-fn test_visible_same_cell<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_same_cell() {
     let cell = Cell { q: 0, r: 0 };
     let map = test_map(0, &[(cell, Terrain::Island(IslandId(1)))]);
+
     assert!(visible(&map, cell, cell, 0));
 }
 
 // Checks that cells beyond the maximum vision range are not visible.
-fn test_visible_out_of_range<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_out_of_range() {
     let from = Cell { q: 0, r: 0 };
     let to = Cell { q: 2, r: 0 };
     let map = test_map(2, &[]);
@@ -69,10 +45,8 @@ where
 }
 
 // Checks that two cells are visible when the line between them contains only clear water.
-fn test_visible_clear_path<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_clear_path() {
     let from = Cell { q: -1, r: 0 };
     let to = Cell { q: 1, r: 0 };
 
@@ -86,10 +60,8 @@ where
 }
 
 // Checks that an island directly between two cells blocks line of sight.
-fn test_visible_land_blocked<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_land_blocked() {
     let from = Cell { q: -1, r: 0 };
     let to = Cell { q: 1, r: 0 };
     let map = test_map(1, &[(Cell { q: 0, r: 0 }, Terrain::Island(IslandId(1)))]);
@@ -101,10 +73,8 @@ where
 }
 
 // Checks that a cliff directly between two cells blocks line of sight.
-fn test_visible_cliff_blocked<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_cliff_blocked() {
     let from = Cell { q: -1, r: 0 };
     let to = Cell { q: 1, r: 0 };
     let map = test_map(1, &[(Cell { q: 0, r: 0 }, Terrain::Cliff)]);
@@ -116,10 +86,8 @@ where
 }
 
 // Checks that a rock between two cells does not block line of sight.
-fn test_visible_rock<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_rock() {
     let from = Cell { q: -1, r: 0 };
     let to = Cell { q: 1, r: 0 };
     let map = test_map(1, &[(Cell { q: 0, r: 0 }, Terrain::Rock)]);
@@ -131,10 +99,8 @@ where
 }
 
 // Checks that a line passing between land and water remains visible.
-fn test_visible_boundary_land_water<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_boundary_land_water() {
     let from = Cell { q: 0, r: 0 };
     let to = Cell { q: 2, r: -1 };
 
@@ -154,10 +120,8 @@ where
 }
 
 // Checks that a line passing between two land cells is blocked.
-fn test_visible_boundary_land_land<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_boundary_land_land() {
     let from = Cell { q: 0, r: 0 };
     let to = Cell { q: 2, r: -1 };
 
@@ -177,10 +141,8 @@ where
 }
 
 // Checks that reversing the line of sight always gives the same visibility result.
-fn test_visible_symmetry<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_symmetry() {
     let a = Cell { q: 0, r: 0 };
     let b = Cell { q: 2, r: -1 };
 
@@ -206,10 +168,8 @@ where
 }
 
 // Checks that land at the starting and ending cells does not block line of sight.
-fn test_visible_endpoints<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_endpoints() {
     let from = Cell { q: 0, r: 0 };
     let to = Cell { q: 2, r: 0 };
 
@@ -224,10 +184,8 @@ where
 }
 
 // Checks that visibility includes cells exactly at the maximum vision range.
-fn test_visible_range_boundary<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_range_boundary() {
     let from = Cell { q: 0, r: 0 };
     let to = Cell { q: 2, r: 0 };
     let map = test_map(2, &[]);
@@ -245,10 +203,8 @@ where
 }
 
 // Checks that every interior sample is examined along a longer line of sight.
-fn test_visible_multiple_samples<F>(mut visible: F)
-where
-    F: FnMut(&Map, Cell, Cell, u32) -> bool,
-{
+#[test]
+fn test_visible_multiple_samples() {
     let from = Cell { q: -2, r: 0 };
     let to = Cell { q: 2, r: 0 };
     let map = test_map(2, &[]);

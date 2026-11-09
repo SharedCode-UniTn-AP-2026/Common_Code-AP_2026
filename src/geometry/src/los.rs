@@ -127,12 +127,6 @@ pub fn visible(map: &Map, from: Cell, to: Cell, vision_range: u32) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_visible;
-
-    #[test]
-    fn test_los() {
-        test_visible(visible);
-    }
 
     // Checks that an exact midpoint returns both nearest cells.
     #[test]
