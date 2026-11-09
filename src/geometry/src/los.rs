@@ -23,11 +23,11 @@ fn nearest_candidates(q_num: i64, r_num: i64, n: i32) -> [Option<Cell>; 2] {
 
     // Euclidean division gives the lower integer coordinate (floor)
     // and the remainder in `0..n`.
-    let q0 = q_num.div_euclid(n_i64) as i32;
-    let rem_q = q_num.rem_euclid(n_i64) as i32;
+    let q0 = i32::try_from(q_num.div_euclid(n_i64)).expect("q0 should be representable as i32");
+    let rem_q = i32::try_from(q_num.rem_euclid(n_i64)).expect("rem_q should be representable as i32 (bounded by 0..n)");
 
-    let r0 = r_num.div_euclid(n_i64) as i32;
-    let rem_r = r_num.rem_euclid(n_i64) as i32;
+    let r0 = i32::try_from(r_num.div_euclid(n_i64)).expect("r0 should be representable as i32");
+    let rem_r = i32::try_from(r_num.rem_euclid(n_i64)).expect("rem_q should be representable as i32 (bounded by 0..n)");
 
     // For `q0`, `q0 * n - q_num` is simply `-rem_q`.
     // For `q0 + 1` (if rem_q != 0), `(q0 + 1) * n - q_num` is `n - rem_q`.
@@ -108,7 +108,7 @@ pub fn visible(map: &Map, from: Cell, to: Cell, vision_range: u32) -> bool {
     }
 
     // Distance can safely be rappresented as an i32 (bounded by 2*radius)
-    let n = distance as i32;
+    let n = distance.cast_signed();
 
     for k in 1..n {
         let (q_num, r_num) = sample_numerators(from, to, k, n);
