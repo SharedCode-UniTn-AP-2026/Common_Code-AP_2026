@@ -46,8 +46,8 @@ jobs:
 
       - name: Generate dashboard
         env:
-          MODULES: "wind,geometry,clues"
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODULES: "wind,geometry,clues,conformance" #CHANGE
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
           REPO: ${{ github.repository }}
         run: |
           python scripts/generate_dashboard.py
