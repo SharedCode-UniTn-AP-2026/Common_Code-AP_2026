@@ -3,10 +3,11 @@ import json
 import os
 import re
 import urllib.request
-import markdown
-import bleach
 from collections import defaultdict
 from datetime import datetime
+
+import bleach
+import markdown
 
 REPO = os.environ["REPO"]
 TOKEN = os.environ["GH_TOKEN"]
@@ -26,6 +27,7 @@ HEADERS = {
 
 BRANCH_PATTERN = re.compile(r"^(.+?)-(feat|fix|[a-z]+)-(.+)$")
 
+
 def render_markdown(text):
     """
     Convert GitHub PR Markdown into safe HTML.
@@ -42,19 +44,37 @@ def render_markdown(text):
             "nl2br",
             "sane_lists",
             "toc",
-        ]
+        ],
     )
 
-    allowed_tags = set(bleach.sanitizer.ALLOWED_TAGS).union({
-        "p", "pre", "code",
-        "h1", "h2", "h3", "h4",
-        "hr", "br", "div", "span",
-        "table", "thead", "tbody",
-        "tr", "th", "td",
-        "ul", "ol", "li",
-        "blockquote", "del",
-        "details", "summary",
-    })
+    allowed_tags = set(bleach.sanitizer.ALLOWED_TAGS).union(
+        {
+            "p",
+            "pre",
+            "code",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "hr",
+            "br",
+            "div",
+            "span",
+            "table",
+            "thead",
+            "tbody",
+            "tr",
+            "th",
+            "td",
+            "ul",
+            "ol",
+            "li",
+            "blockquote",
+            "del",
+            "details",
+            "summary",
+        }
+    )
 
     allowed_attributes = {
         "a": ["href", "title", "rel"],
@@ -69,9 +89,10 @@ def render_markdown(text):
         tags=allowed_tags,
         attributes=allowed_attributes,
         protocols=["http", "https", "mailto"],
-        strip=True
+        strip=True,
     )
-    
+
+
 def github_get(url):
     request = urllib.request.Request(url, headers=HEADERS)
 
@@ -174,6 +195,7 @@ def generate_dashboard(pull_requests):
             <div class="latest">
                 {render_latest(branches, "feat")}
                 {render_latest(branches, "fix")}
+                {render_most_active_branch(branches)}
             </div>
 
             <h3>Branch history</h3>
@@ -190,7 +212,6 @@ def render_latest(branches, branch_type):
     entries = branches.get(branch_type, [])
 
     if not entries:
-
         return f"""
         <div class="latest-card">
 
@@ -201,36 +222,31 @@ def render_latest(branches, branch_type):
         </div>
         """
 
-    latest = max(
-        entries,
-        key=date_key
-    )
+    latest = max(entries, key=date_key)
 
-    description = render_markdown(
-        latest.get("description", "")
-    )
+    description = render_markdown(latest.get("description", ""))
 
     return f"""
     <div class="latest-card">
 
         <small>LATEST {branch_type.upper()}</small>
 
-        <h3>{html.escape(latest['feature'])}</h3>
+        <h3>{html.escape(latest["feature"])}</h3>
 
-        <a href="{html.escape(latest['url'])}"
+        <a href="{html.escape(latest["url"])}"
            target="_blank"
            rel="noopener noreferrer">
 
-            PR #{latest['number']}
+            PR #{latest["number"]}
 
         </a>
 
-        <p>{format_date(latest['date'])}</p>
+        <p>{format_date(latest["date"])}</p>
 
-        <p>Author: {html.escape(latest['author'])}</p>
+        <p>Author: {html.escape(latest["author"])}</p>
 
-        <span class="status {html.escape(latest['state'])}">
-            {html.escape(latest['state'])}
+        <span class="status {html.escape(latest["state"])}">
+            {html.escape(latest["state"])}
         </span>
 
         <details class="pr-description">
@@ -247,6 +263,39 @@ def render_latest(branches, branch_type):
     """
 
 
+def render_most_active_branch(branches):
+
+    branch_counts = defaultdict(int)
+
+    for entries in branches.values():
+        for item in entries:
+            branch_counts[item["branch"]] += 1
+
+    if not branch_counts:
+        return """
+        <div class="latest-card">
+            <small>MOST ACTIVE BRANCH</small>
+            <p>No branches found</p>
+        </div>
+        """
+
+    most_active = max(branch_counts, key=lambda branch: branch_counts[branch])
+
+    count = branch_counts[most_active]
+
+    return f"""
+    <div class="latest-card">
+
+        <small>MOST ACTIVE BRANCH</small>
+
+        <h3>{html.escape(most_active)}</h3>
+
+        <p>{count} PR(s)</p>
+
+    </div>
+    """
+
+
 def render_history(branches):
 
     all_entries = []
@@ -254,10 +303,7 @@ def render_history(branches):
     for entries in branches.values():
         all_entries.extend(entries)
 
-    all_entries.sort(
-        key=date_key,
-        reverse=True
-    )
+    all_entries.sort(key=date_key, reverse=True)
 
     if not all_entries:
         return "<p>No pull requests found for this module.</p>"
@@ -265,25 +311,22 @@ def render_history(branches):
     rows = []
 
     for item in all_entries:
-
-        description = render_markdown(
-            item.get("description", "")
-        )
+        description = render_markdown(item.get("description", ""))
 
         rows.append(f"""
         <tr>
 
             <td>
-                <code>{html.escape(item['branch'])}</code>
+                <code>{html.escape(item["branch"])}</code>
             </td>
 
             <td>
 
-                <a href="{html.escape(item['url'])}"
+                <a href="{html.escape(item["url"])}"
                    target="_blank"
                    rel="noopener noreferrer">
 
-                    #{item['number']} - {html.escape(item['title'])}
+                    #{item["number"]} - {html.escape(item["title"])}
 
                 </a>
 
@@ -299,15 +342,15 @@ def render_history(branches):
 
             </td>
 
-            <td>{html.escape(item['author'])}</td>
+            <td>{html.escape(item["author"])}</td>
 
             <td>
-                <span class="status {html.escape(item['state'])}">
-                    {html.escape(item['state'])}
+                <span class="status {html.escape(item["state"])}">
+                    {html.escape(item["state"])}
                 </span>
             </td>
 
-            <td>{format_date(item['date'])}</td>
+            <td>{format_date(item["date"])}</td>
 
         </tr>
         """)
@@ -328,7 +371,7 @@ def render_history(branches):
             </thead>
 
             <tbody>
-                {''.join(rows)}
+                {"".join(rows)}
             </tbody>
 
         </table>
