@@ -7,6 +7,7 @@ name = "ap-2026-common-code"
 version = "0.1.0"
 dependencies = [
  "ap-2026-common-code-clues",
+ "ap-2026-common-code-conformance",
  "ap-2026-common-code-geometry",
  "ap-2026-common-code-shared",
  "ap-2026-common-code-wind",
@@ -14,6 +15,10 @@ dependencies = [
 
 [[package]]
 name = "ap-2026-common-code-clues"
+version = "0.1.0"
+
+[[package]]
+name = "ap-2026-common-code-conformance"
 version = "0.1.0"
 
 [[package]]
