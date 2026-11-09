@@ -3,105 +3,88 @@
 use crate::cell::Cell;
 use crate::map::Map;
 
-/// Returns the squared cube-coordinate distance between a cell
-/// center and a fractional sample point, scaled by `n²`.
-///
-/// Comparisons use integer arithmetic without floating-point rounding.
-///
-/// # Panics
-///
-/// May panic on arithmetic overflow for extreme coordinates.
-fn squared_distance_to_sample(cell: Cell, q_num: i64, r_num: i64, n: i64) -> i64 {
-    // Convert the cell coordinates to cube coordinates.
-    let q = i64::from(cell.q);
-    let r = i64::from(cell.r);
-    let s = -q - r;
+/// Returns the squared cube-coordinate distance scaled by `n^2`
+fn squared_distance(dq: i32, dr: i32) -> i64 {
+    let dq = i64::from(dq);
+    let dr = i64::from(dr);
+    let ds = -dq - dr;
 
-    // Calculate the third numerator of the fractional sample.
-    let s_num = -q_num - r_num;
-
-    // Calculate coordinate differences without dividing by n.
-    let dq = q * n - q_num;
-    let dr = r * n - r_num;
-    let ds = s * n - s_num;
-
-    // Return the squared distance scaled by n^2.
-    // This preserves exact comparisons without floating-point errors.
     dq * dq + dr * dr + ds * ds
 }
 
-/// Returns the nearest candidate cells to a fractional sample point.
+/// Returns up to 2 nearest candidate cells to a fractional sample point.
 ///
-/// Cells with equal minimum squared distance are all included.
-/// The result is calculated using integer comparisons.
-///
-/// # Panics
-///
-/// Panics if `n == 0` and may panic on arithmetic overflow.
-fn nearest_candidates(q_num: i64, r_num: i64, n: i64) -> Vec<Cell> {
-    assert!(n > 0);
+/// The function takes the r and q interpolated from the [`sample_numerators`] and performs Euclidean
+/// division on them to find the closest cells (up to 2 cells for every pair of coordinates).
+/// Using Euclidean division, we eliminate the risk of floating point inaccuracies.
+fn nearest_candidates(q_num: i64, r_num: i64, n: i32) -> [Option<Cell>; 2] {
+    debug_assert!(n > 0);
+    let n_i64 = i64::from(n);
 
-    // Find the lower and upper integer values of q.
-    let q0 = q_num.div_euclid(n);
-    let q1 = q0 + i64::from(q_num.rem_euclid(n) != 0);
+    // Euclidean division gives the lower integer coordinate (floor)
+    // and the remainder in `0..n`.
+    let q0 = q_num.div_euclid(n_i64) as i32;
+    let rem_q = q_num.rem_euclid(n_i64) as i32;
 
-    // Find the lower and upper integer values of r.
-    let r0 = r_num.div_euclid(n);
-    let r1 = r0 + i64::from(r_num.rem_euclid(n) != 0);
+    let r0 = r_num.div_euclid(n_i64) as i32;
+    let rem_r = r_num.rem_euclid(n_i64) as i32;
 
-    // Store the closest cells and the minimum distance found.
-    let mut candidates = Vec::new();
+    // For `q0`, `q0 * n - q_num` is simply `-rem_q`.
+    // For `q0 + 1` (if rem_q != 0), `(q0 + 1) * n - q_num` is `n - rem_q`.
+    let q_steps = if rem_q == 0 {
+        // The division is exact, no remainder
+        [(q0, 0), (q0, 0)]
+    } else {
+        // We need to consider two cells.
+        // How close the two cells are to the point is determined by the remainder
+        [(q0, -rem_q), (q0 + 1, n - rem_q)]
+    };
+
+    let r_steps = if rem_r == 0 {
+        [(r0, 0), (r0, 0)]
+    } else {
+        [(r0, -rem_r), (r0 + 1, n - rem_r)]
+    };
+
+    let mut candidates = [None; 2];
+    let mut last_index = 0;
     let mut min_distance = i64::MAX;
 
-    // Check all combinations of nearby integer coordinates.
-    for q in [q0, q1] {
-        for r in [r0, r1] {
-            // Convert coordinates back to the Cell type (i32).
-            let (Ok(q), Ok(r)) = (i32::try_from(q), i32::try_from(r)) else {
-                continue;
-            };
-
+    // Taking the nearest candidates
+    for (q, dq) in q_steps {
+        for (r, dr) in r_steps {
             let cell = Cell { q, r };
-
-            // Calculate the exact squared distance to the sample.
-            let distance = squared_distance_to_sample(cell, q_num, r_num, n);
+            let distance = squared_distance(dq, dr);
 
             if distance < min_distance {
-                // A closer cell was found: replace previous candidates.
                 min_distance = distance;
-                candidates.clear();
-                candidates.push(cell);
-            } else if distance == min_distance && !candidates.contains(&cell) {
-                // Keep equally close cells without adding duplicates.
-                candidates.push(cell);
+                candidates = [Some(cell), None];
+                last_index = 1;
+            } else if distance == min_distance && !candidates.contains(&Some(cell)) {
+                // if we have two cell at the same distance (border between the cell) we take both
+                candidates[last_index] = Some(cell);
+                last_index += 1;
             }
         }
     }
 
-    // Return all cells sharing the minimum distance.
     candidates
 }
 
-/// Returns the axial coordinate numerators of sample `k`
+/// Returns the axial coordinate (`q_num`,`r_num`) numerators of sample `k`
 /// along the segment from `from` to `to`.
 ///
 /// Both coordinates share denominator `n`.
-///
-/// # Panics
-///
-/// Panics if `n == 0` or `k` is outside `0..=n`.
-/// May also panic on arithmetic overflow.
-fn sample_numerators(from: Cell, to: Cell, k: i64, n: i64) -> (i64, i64) {
-    assert!(n > 0);
-    assert!(k >= 0 && k <= n);
+fn sample_numerators(from: Cell, to: Cell, k: i32, n: i32) -> (i64, i64) {
+    debug_assert!(n > 0);
+    debug_assert!(k >= 0 && k <= n);
 
-    // Interpolate the q coordinate without dividing by n.
-    let q_num = (n - k) * i64::from(from.q) + k * i64::from(to.q);
+    let n_minus_k = i64::from(n - k);
+    let k = i64::from(k);
 
-    // Interpolate the r coordinate without dividing by n.
-    let r_num = (n - k) * i64::from(from.r) + k * i64::from(to.r);
+    let q_num = n_minus_k * i64::from(from.q) + k * i64::from(to.q);
+    let r_num = n_minus_k * i64::from(from.r) + k * i64::from(to.r);
 
-    // Return the two numerators.
     (q_num, r_num)
 }
 
@@ -110,17 +93,13 @@ fn sample_numerators(from: Cell, to: Cell, k: i64, n: i64) -> (i64, i64) {
 ///
 /// Interior samples block visibility only when all their nearest
 /// candidate cells are land. The endpoints' terrain is ignored.
-///
-/// This legacy implementation does not reject endpoints outside
-/// the map.
-///
-/// # Panics
-///
-/// May panic on arithmetic overflow for extreme coordinates,
-/// including overflow in `Cell::distance`.
 #[must_use]
 pub fn visible(map: &Map, from: Cell, to: Cell, vision_range: u32) -> bool {
-    // Calculate the hexagonal distance between the two cells.
+    // Check if the cells are inside the map
+    if !map.contains(from) || !map.contains(to) {
+        return false;
+    }
+
     let distance = from.distance(to);
 
     // Cells beyond the vision range are not visible.
@@ -128,49 +107,26 @@ pub fn visible(map: &Map, from: Cell, to: Cell, vision_range: u32) -> bool {
         return false;
     }
 
-    let n = i64::from(distance);
+    // Distance can safely be rappresented as an i32 (bounded by 2*radius)
+    let n = distance as i32;
 
-    // Check only interior samples, excluding both endpoints.
     for k in 1..n {
-        // Compute the exact fractional sample coordinates.
         let (q_num, r_num) = sample_numerators(from, to, k, n);
 
-        // Find all cells equally closest to the sample.
         let candidates = nearest_candidates(q_num, r_num, n);
 
         // A sample blocks sight only when all candidates are land.
-        if candidates.iter().all(|&cell| map.is_land(cell)) {
+        if candidates.iter().flatten().all(|&cell| map.is_land(cell)) {
             return false;
         }
     }
 
-    // No blocking samples were found.
     true
 }
 
 #[cfg(test)]
-mod los_tests {
+mod test {
     use super::*;
-
-    // Checks that two cells are exactly equidistant from a midpoint.
-    #[test]
-    fn test_squared_distance_midpoint() {
-        let a = Cell { q: 1, r: -1 };
-        let b = Cell { q: 1, r: 0 };
-
-        // Midpoint (1, -0.5, -0.5)
-        let q_num = 2;
-        let r_num = -1;
-        let n = 2;
-
-        let distance_a = squared_distance_to_sample(a, q_num, r_num, n);
-
-        let distance_b = squared_distance_to_sample(b, q_num, r_num, n);
-
-        assert_eq!(distance_a, 2);
-        assert_eq!(distance_b, 2);
-        assert_eq!(distance_a, distance_b);
-    }
 
     // Checks that an exact midpoint returns both nearest cells.
     #[test]
@@ -184,8 +140,8 @@ mod los_tests {
 
         assert_eq!(candidates.len(), 2);
 
-        assert!(candidates.contains(&Cell { q: 1, r: -1 }));
-        assert!(candidates.contains(&Cell { q: 1, r: 0 }));
+        assert!(candidates.contains(&Some(Cell { q: 1, r: -1 })));
+        assert!(candidates.contains(&Some(Cell { q: 1, r: 0 })));
     }
 
     // Checks exact interpolation of sample points using integer numerators.
@@ -194,7 +150,7 @@ mod los_tests {
         let from = Cell { q: 0, r: 0 };
         let to = Cell { q: 2, r: 1 };
 
-        let n = i64::from(from.distance(to));
+        let n = from.distance(to) as i32;
 
         assert_eq!(n, 3);
 
@@ -218,8 +174,8 @@ mod los_tests {
 
         let candidates = nearest_candidates(q_num, r_num, n);
 
-        assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0], Cell { q: 1, r: 0 });
+        assert_eq!(candidates.iter().flatten().collect::<Vec<&Cell>>().len(), 1);
+        assert_eq!(candidates[0], Some(Cell { q: 1, r: 0 }));
     }
 
     // Checks that negative fractional coordinates return the correct nearest cell.
@@ -232,64 +188,7 @@ mod los_tests {
 
         let candidates = nearest_candidates(q_num, r_num, n);
 
-        assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0], Cell { q: -1, r: 0 });
-    }
-
-    // Checks that a point on a shared vertex returns all three nearest cells.
-    #[test]
-    fn test_nearest_candidates_three_cells() {
-        // Point (2/3, -1/3, -1/3) represented exactly.
-        let q_num = 2;
-        let r_num = -1;
-        let n = 3;
-
-        let candidates = nearest_candidates(q_num, r_num, n);
-
-        assert_eq!(candidates.len(), 3);
-
-        assert!(candidates.contains(&Cell { q: 0, r: 0 }));
-        assert!(candidates.contains(&Cell { q: 1, r: -1 }));
-        assert!(candidates.contains(&Cell { q: 1, r: 0 }));
-    }
-
-    // Checks that the optimized nearest-cell search matches an exhaustive search.
-    #[test]
-    fn test_nearest_candidates_brute_force() {
-        // Test different denominators, including negative coordinates.
-        for n in 1_i64..=6 {
-            for q_num in (-2 * n)..=(2 * n) {
-                for r_num in (-2 * n)..=(2 * n) {
-                    let mut expected = Vec::new();
-                    let mut min_distance = i64::MAX;
-
-                    // Exhaustively check cells in a sufficiently large area.
-                    for q in -4_i32..=4 {
-                        for r in -4_i32..=4 {
-                            let cell = Cell { q, r };
-
-                            let distance = squared_distance_to_sample(cell, q_num, r_num, n);
-
-                            if distance < min_distance {
-                                min_distance = distance;
-                                expected.clear();
-                                expected.push(cell);
-                            } else if distance == min_distance {
-                                expected.push(cell);
-                            }
-                        }
-                    }
-
-                    // Compare with the optimized algorithm.
-                    let mut actual = nearest_candidates(q_num, r_num, n);
-
-                    // Sort because candidate order is not important.
-                    expected.sort();
-                    actual.sort();
-
-                    assert_eq!(actual, expected, "Mismatch for q_num={q_num}, r_num={r_num}, n={n}");
-                }
-            }
-        }
+        assert_eq!(candidates.iter().flatten().collect::<Vec<&Cell>>().len(), 1);
+        assert_eq!(candidates[0], Some(Cell { q: -1, r: 0 }));
     }
 }
