@@ -1,7 +1,7 @@
+import html
+import json
 import os
 import re
-import json
-import html
 import urllib.request
 from collections import defaultdict
 from datetime import datetime
@@ -22,9 +22,7 @@ HEADERS = {
     "X-GitHub-Api-Version": "2022-11-28",
 }
 
-BRANCH_PATTERN = re.compile(
-    r"^(.+?)-(feat|fix|[a-z]+)-(.+)$"
-)
+BRANCH_PATTERN = re.compile(r"^(.+?)-(feat|fix|[a-z]+)-(.+)$")
 
 
 def github_get(url):
@@ -39,10 +37,7 @@ def get_all_pull_requests():
     page = 1
 
     while True:
-        url = (
-            f"{API}/pulls"
-            f"?state=all&per_page=100&page={page}"
-        )
+        url = f"{API}/pulls?state=all&per_page=100&page={page}"
 
         batch = github_get(url)
 
@@ -76,15 +71,15 @@ def format_date(date):
     if not date:
         return "Unknown"
 
-    return datetime.fromisoformat(
-        date.replace("Z", "+00:00")
-    ).strftime("%Y-%m-%d")
+    return datetime.fromisoformat(date.replace("Z", "+00:00")).strftime("%Y-%m-%d")
+
+
+def date_key(item):
+    return item.get("date") or ""
 
 
 def generate_dashboard(pull_requests):
-    modules = defaultdict(
-        lambda: defaultdict(list)
-    )
+    modules = defaultdict(lambda: defaultdict(list))
 
     for pr in pull_requests:
         branch = pr["head"]["ref"]
@@ -102,19 +97,20 @@ def generate_dashboard(pull_requests):
 
         branch_type = parsed["type"]
 
-        modules[module][branch_type].append({
-            "branch": branch,
-            "feature": parsed["feature"],
-            "title": pr["title"],
-            "number": pr["number"],
-            "url": pr["html_url"],
-            "state": (
-                "merged" if pr["merged_at"]
-                else pr["state"]
-            ),
-            "date": pr["created_at"],
-            "merged_at": pr["merged_at"],
-        })
+        modules[module][branch_type].append(
+            {
+                "branch": branch,
+                "feature": parsed["feature"],
+                "title": pr["title"],
+                "number": pr["number"],
+                "url": pr["html_url"],
+                "author": pr["user"]["login"],
+                "description": pr.get("body") or "No description provided.",
+                "state": ("merged" if pr["merged_at"] else pr["state"]),
+                "date": pr["created_at"],
+                "merged_at": pr["merged_at"],
+            }
+        )
 
     output = []
 
@@ -153,66 +149,102 @@ def render_latest(branches, branch_type):
         </div>
         """
 
-    latest = max(
-        entries,
-        key=lambda item: item["date"]
-    )
+    latest = max(entries, key=lambda item: item["date"])
 
     return f"""
     <div class="latest-card">
         <small>LATEST {branch_type.upper()}</small>
-        <h3>{html.escape(latest['feature'])}</h3>
+        <h3>{html.escape(latest["feature"])}</h3>
 
-        <a href="{html.escape(latest['url'], quote=True)}">
-            PR #{latest['number']}
+        <a href="{html.escape(latest["url"], quote=True)}">
+            PR #{latest["number"]}
         </a>
 
-        <p>{format_date(latest['date'])}</p>
+        <p>{format_date(latest["date"])}</p>
     </div>
     """
 
 
 def render_history(branches):
+
     all_entries = []
 
     for entries in branches.values():
         all_entries.extend(entries)
 
-    all_entries.sort(
-        key=lambda item: item["date"],
-        reverse=True
-    )
+    all_entries.sort(key=date_key, reverse=True)
+
+    if not all_entries:
+        return "<p>No pull requests found for this module.</p>"
 
     rows = []
 
     for item in all_entries:
+        description = html.escape(item["description"])
+
         rows.append(f"""
         <tr>
-            <td>{html.escape(item['branch'])}</td>
+
             <td>
-                <a href="{html.escape(item['url'], quote=True)}">
-                    #{item['number']} - {html.escape(item['title'])}
-                </a>
+                <code>{html.escape(item["branch"])}</code>
             </td>
-            <td>{html.escape(item['state'])}</td>
-            <td>{format_date(item['date'])}</td>
+
+            <td>
+                <a href="{html.escape(item["url"])}"
+                   target="_blank"
+                   rel="noopener noreferrer">
+
+                    #{item["number"]} - {html.escape(item["title"])}
+
+                </a>
+
+                <details class="pr-description">
+
+                    <summary>Show PR description</summary>
+
+                    <div class="description-content">
+                        {description}
+                    </div>
+
+                </details>
+
+            </td>
+
+            <td>{html.escape(item["author"])}</td>
+
+            <td>
+                <span class="status {html.escape(item["state"])}">
+                    {html.escape(item["state"])}
+                </span>
+            </td>
+
+            <td>{format_date(item["date"])}</td>
+
         </tr>
         """)
 
     return f"""
-    <table>
-        <thead>
-            <tr>
-                <th>Branch</th>
-                <th>Pull Request</th>
-                <th>Status</th>
-                <th>Created</th>
-            </tr>
-        </thead>
-        <tbody>
-            {''.join(rows)}
-        </tbody>
-    </table>
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Branch</th>
+                    <th>Pull Request</th>
+                    <th>Author</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {"".join(rows)}
+            </tbody>
+
+        </table>
+
+    </div>
     """
 
 
@@ -294,6 +326,36 @@ def main():
                     body {{ padding: 12px; }}
                     table {{ font-size: 12px; }}
                 }}
+
+                .pr-description {{
+                    margin-top: 8px;
+                    font-size: 12px;
+                }}
+
+                .pr-description summary {{
+                    cursor: pointer;
+                    color: #64748b;
+                    user-select: none;
+                    padding: 4px 0;
+                    }}
+
+                .pr-description summary:hover {{
+                    color: #2563eb;
+                }}
+
+                .description-content {{
+                    margin-top: 8px;
+                    padding: 12px;
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 6px;
+                    color: #334155;
+                    white-space: pre-wrap;
+                    overflow-wrap: anywhere;
+                    line-height: 1.5;
+                    max-height: 300px;
+                    overflow-y: auto;
+                    }}
             </style>
         </head>
 
