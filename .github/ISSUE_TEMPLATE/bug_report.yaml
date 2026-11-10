@@ -22,6 +22,7 @@ body:
               - Wind
               - Clues
               - Conformance
+              - Messages 
           default: 0
       validations:
           required: true

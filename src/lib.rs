@@ -8,5 +8,6 @@
 pub use clues;
 pub use conformance;
 pub use geometry;
+pub use messages;
 pub use shared;
 pub use wind;

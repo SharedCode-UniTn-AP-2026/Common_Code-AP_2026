@@ -10,6 +10,7 @@ shared = { package = "ap-2026-common-code-shared", path = "src/shared" }
 wind = { package = "ap-2026-common-code-wind", path = "src/wind" }
 clues = { package = "ap-2026-common-code-clues", path = "src/clues" }
 conformance = { package = "ap-2026-common-code-conformance", path = "src/conformance" }
+messages = { package = "ap-2026-common-code-messages", path = "src/messages" }
 
 [workspace]
 members = [
@@ -18,4 +19,5 @@ members = [
     "src/wind",
     "src/clues",
     "src/conformance",
+    "src/messages"
 ]

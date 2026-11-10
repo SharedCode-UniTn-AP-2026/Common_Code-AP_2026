@@ -34,7 +34,7 @@ jobs:
                       const match = body.match(/###\s*feature\s*\n+([^\n\r]+)/i);
 
                       if (match && match[1]) {
-                          const supportedFeatures = ['geometry', 'wind', 'clues', 'conformance']; //CHANGE
+                          const supportedFeatures = ['geometry', 'wind', 'clues', 'conformance', 'messages']; //CHANGE
                           
                           const selectedFeature = match?.[1]?.trim().toLowerCase();
                           
@@ -72,6 +72,7 @@ jobs:
                         'wind': { teamSlug: 'zev', members: ['Nikicoraz', 'FedeBrus', 'ManMls', 'bzraa'] },
                         'clues': { teamSlug: 'unsafe', members: ['Mionuel', 'theRealWallice', 'ZenSan3', 'zThatIsCrazy'] },
                         'conformance': { teamSlug: 'Rust_in_Case', members: ['btwLLeo', 'mattiacoll', 'ThOmAsM210', 'Toko-hw'] }
+                        'messages': { teamSlug: 'unwrap_and_pray', members: ['Captniz', 'samuelbravi11', 'Mattiaexe', 'ReBIviBDas'] }
                       };
 
                       // Fetch the latest issue details to get fresh labels

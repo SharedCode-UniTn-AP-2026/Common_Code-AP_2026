@@ -14,3 +14,7 @@
 'conformance':
   - changed-files:
       - any-glob-to-any-file: 'conformance/**/*'
+
+'messages':
+  - changed-files:
+      - any-glob-to-any-file: 'messages/**/*'
