@@ -34,26 +34,22 @@ jobs:
                       const match = body.match(/###\s*feature\s*\n+([^\n\r]+)/i);
 
                       if (match && match[1]) {
-                        const selectedFeature = match[1].trim().toLowerCase();
-
-                        let labelToAdd = null;
-                        if (selectedFeature.includes('geometry')) {
-                          labelToAdd = 'geometry';
-                        } else if (selectedFeature.includes('types')) {
-                          labelToAdd = 'types';
-                        }
-
-                        if (labelToAdd) {
-                          await github.rest.issues.addLabels({
-                            owner: context.repo.owner,
-                            repo: context.repo.repo,
-                            issue_number: context.issue.number,
-                            labels: [labelToAdd]
-                          });
-                          console.log(`Added label '${labelToAdd}' to issue #${context.issue.number}`);
-                        } else {
-                          console.log(`No matching label found for selected value: '${selectedFeature}'`);
-                        }
+                          const supportedFeatures = ['geometry', 'wind', 'clues', 'conformance', 'messages']; //CHANGE
+                          
+                          const selectedFeature = match?.[1]?.trim().toLowerCase();
+                          
+                          const labelToAdd = supportedFeatures.find(
+                            feature => selectedFeature?.includes(feature)
+                          );
+                          
+                          if (labelToAdd) {
+                            await github.rest.issues.addLabels({
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              issue_number: context.issue.number,
+                              labels: [labelToAdd]
+                            });
+                          }
                       } else {
                         console.log("Could not find 'feature' dropdown field in issue body.");
                       }
@@ -71,9 +67,12 @@ jobs:
                   script: |
                       const org = 'SharedCode-UniTn-AP-2026';
 
-                      const teamMapping = {
-                        'geometry': { teamSlug: 'Rusty_Crab', members: ['Eneo-org', 'alterax05', 'lalla2306', 'Iv25k5'] },
-                        'types': { teamSlug: 'yyy', members: ['xxx'] }
+                      const teamMapping = { //CHANGE
+                        'geometry': { teamSlug: 'Rusty_Crab', members: ['Eneo-org', 'alterax05', 'LauraPrandina', 'Iv25k5'] },
+                        'wind': { teamSlug: 'zev', members: ['Nikicoraz', 'FedeBrus', 'ManMls', 'bzraa'] },
+                        'clues': { teamSlug: 'unsafe', members: ['Mionuel', 'theRealWallice', 'ZenSan3', 'zThatIsCrazy'] },
+                        'conformance': { teamSlug: 'Rust_in_Case', members: ['btwLLeo', 'mattiacoll', 'ThOmAsM210', 'Toko-hw'] }
+                        'messages': { teamSlug: 'unwrap_and_pray', members: ['Captniz', 'samuelbravi11', 'Mattiaexe', 'ReBIviBDas'] }
                       };
 
                       // Fetch the latest issue details to get fresh labels

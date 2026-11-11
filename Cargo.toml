@@ -1,3 +1,4 @@
+#CHANGE
 [package]
 name = "ap-2026-common-code"
 version = "0.1.0"
@@ -6,11 +7,19 @@ edition = "2024"
 [dependencies]
 geometry = { package = "ap-2026-common-code-geometry", path = "src/geometry" }
 shared = { package = "ap-2026-common-code-shared", path = "src/shared" }
+wind = { package = "ap-2026-common-code-wind", path = "src/wind" }
+clues = { package = "ap-2026-common-code-clues", path = "src/clues" }
+conformance = { package = "ap-2026-common-code-conformance", path = "src/conformance" }
+messages = { package = "ap-2026-common-code-messages", path = "src/messages" }
 
 [workspace]
 members = [
     "src/geometry",
-    "src/shared"
+    "src/shared",
+    "src/wind",
+    "src/clues",
+    "src/conformance",
+    "src/messages"
 ]
 
 [workspace.dependencies]

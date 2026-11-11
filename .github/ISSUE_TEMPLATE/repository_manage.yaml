@@ -2,7 +2,7 @@ name: Repository Management
 description: Want to change something in the repository or need to contact the manager?
 assignees: "Captniz"
 title: "[Repo]: "
-labels: ["repo management"]
+labels: ["repo"]
 type: repo_manage
 body:
     - type: input
