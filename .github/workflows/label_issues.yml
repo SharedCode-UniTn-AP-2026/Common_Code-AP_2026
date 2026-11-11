@@ -68,7 +68,7 @@ jobs:
                       const org = 'SharedCode-UniTn-AP-2026';
 
                       const teamMapping = { //CHANGE
-                        'geometry': { teamSlug: 'Rusty_Crab', members: ['Eneo-org', 'alterax05', 'LauraPrandina', 'Iv25k5'] },
+                        'geometry': { teamSlug: 'Rusty_Krab', members: ['Eneo-org', 'alterax05', 'LauraPrandina', 'Iv25k5'] },
                         'wind': { teamSlug: 'zev', members: ['Nikicoraz', 'FedeBrus', 'ManMls', 'bzraa'] },
                         'clues': { teamSlug: 'unsafe', members: ['Mionuel', 'theRealWallice', 'ZenSan3', 'zThatIsCrazy'] },
                         'conformance': { teamSlug: 'Rust_in_Case', members: ['btwLLeo', 'mattiacoll', 'ThOmAsM210', 'Toko-hw'] }
