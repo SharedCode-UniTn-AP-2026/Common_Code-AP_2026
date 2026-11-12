@@ -1,0 +1,1 @@
+Document Map, Error and its variants, and every public and private Map method. Describe validation order, boundary behavior, iterator ordering, helper preconditions and possible panics. Preserve functionality and existing user edits. Check formatting, build documentation and run geometry tests. Record outcomes and all conversation questions and answers.

@@ -1,0 +1,1 @@
+in @file:map.rs write the documentation of struct Map, enum Error and for all Map methods [@map.rs](file:///Users/lauraprandina/Desktop/uni/advanced/geometry/Common_Code-AP_2026/src/geometry/src/map.rs)[@map.rs](file:///Users/lauraprandina/Desktop/uni/advanced/geometry/Common_Code-AP_2026/src/geometry/src/map.rs)
