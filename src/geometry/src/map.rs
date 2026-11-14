@@ -270,18 +270,7 @@ impl Map for DefaultMap {
     fn radius(&self) -> u32 {
         self.radius
     }
-    /// Return whether `cell` lies within the map, including its boundary.
-    ///
-    /// Accepts any `i32` coordinates; out-of-range coordinates return `false`.
-    fn contains(&self, cell: Cell) -> bool {
-        let Cell { q, r } = cell;
 
-        if !(q.unsigned_abs() <= self.radius && r.unsigned_abs() <= self.radius) {
-            return false;
-        }
-        let s = cell.s();
-        s.unsigned_abs() <= self.radius
-    }
     /// Return the terrain at `cell`, or `None` when it lies outside the map.
     fn terrain(&self, cell: Cell) -> Option<Terrain> {
         if !self.contains(cell) {
@@ -291,35 +280,7 @@ impl Map for DefaultMap {
         let index = self.cell_index(cell);
         Some(self.terrain[index].1)
     }
-    /// Return whether `cell` is land ([`Terrain::Island`] or [`Terrain::Cliff`]).
-    /// Returns `false` for cells outside the map.
-    fn is_land(&self, cell: Cell) -> bool {
-        if !self.contains(cell) {
-            return false;
-        }
-        self.terrain[self.cell_index(cell)].1.is_land()
-    }
-    /// Return whether `cell` is water ([`Terrain::Clear`] or [`Terrain::Rock`]).
-    /// Returns `false` for cells outside the map.
-    fn is_water(&self, cell: Cell) -> bool {
-        if !self.contains(cell) {
-            return false;
-        }
-        self.terrain[self.cell_index(cell)].1.is_water()
-    }
-    /// Return the six corner cells in counter-clockwise order, starting east.
-    /// The order is east, northeast, northwest, west, southwest, southeast.
-    fn corners(&self) -> [Cell; 6] {
-        let rad = self.radius.cast_signed();
-        [
-            Cell { q: rad, r: 0 },
-            Cell { q: rad, r: -rad },
-            Cell { q: 0, r: -rad },
-            Cell { q: -rad, r: 0 },
-            Cell { q: -rad, r: rad },
-            Cell { q: 0, r: rad },
-        ]
-    }
+
     /// Iterate over all water cells ([`Terrain::Clear`] and [`Terrain::Rock`]).
     /// Cells are yielded in ascending order by `q`, then `r`.
     fn water_cells(&self) -> impl Iterator<Item = Cell> + '_ {
@@ -328,6 +289,7 @@ impl Map for DefaultMap {
             .filter(|(_, terrain)| terrain.is_water())
             .map(|(cell, _)| *cell)
     }
+
     /// Iterate over all cells whose terrain is [`Terrain::Clear`].
     /// Cells are yielded in ascending order by `q`, then `r`.
     fn clear_cells(&self) -> impl Iterator<Item = Cell> + '_ {
