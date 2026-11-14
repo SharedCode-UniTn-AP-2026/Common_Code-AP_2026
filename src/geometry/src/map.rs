@@ -4,18 +4,115 @@ use thiserror::Error;
 
 /// A complete hexagonal map centered on `Cell { q: 0, r: 0 }`.
 ///
+/// Implementors provide only [`radius`](Map::radius) and
+/// [`terrain`](Map::terrain); every other method has a default
+/// implementation built on these two. See [`DefaultMap`] for the
+/// provided implementation.
+pub trait Map {
+    /// Return the map's radius in hexagonal cell steps from the origin.
+    ///
+    /// Implementations must return at most `i32::MAX / 2`, the bound
+    /// enforced by [`DefaultMap::try_new`]; the default methods may
+    /// panic otherwise.
+    fn radius(&self) -> u32;
+
+    /// Return the terrain at `cell`, or `None` when it lies outside the map.
+    ///
+    /// Implementations must return `Some` exactly for the cells accepted
+    /// by [`contains`](Map::contains).
+    fn terrain(&self, cell: Cell) -> Option<Terrain>;
+
+    /// Return whether `cell` lies within the map, including its boundary.
+    ///
+    /// Accepts any `i32` coordinates; out-of-range coordinates return `false`.
+    ///
+    /// # Panics
+    ///
+    /// May panic if [`radius`](Map::radius) exceeds `i32::MAX / 2`,
+    /// when [`Cell::s`] overflows.
+    #[must_use]
+    fn contains(&self, cell: Cell) -> bool {
+        let Cell { q, r } = cell;
+
+        if !(q.unsigned_abs() <= self.radius() && r.unsigned_abs() <= self.radius()) {
+            return false;
+        }
+        let s = cell.s();
+        s.unsigned_abs() <= self.radius()
+    }
+
+    /// Return the six corner cells in counter-clockwise order, starting east.
+    /// The order is east, northeast, northwest, west, southwest, southeast.
+    ///
+    /// # Panics
+    ///
+    /// If [`radius`](Map::radius) violates its contract, may panic in builds
+    /// with overflow checks or return cells that are not corners of the map.
+    #[must_use]
+    fn corners(&self) -> [Cell; 6] {
+        let rad = self.radius().cast_signed();
+        [
+            Cell { q: rad, r: 0 },
+            Cell { q: rad, r: -rad },
+            Cell { q: 0, r: -rad },
+            Cell { q: -rad, r: 0 },
+            Cell { q: -rad, r: rad },
+            Cell { q: 0, r: rad },
+        ]
+    }
+    /// Iterate over all water cells ([`Terrain::Clear`] and [`Terrain::Rock`]).
+    /// Cells are yielded in ascending order by `q`, then `r`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if [`radius`](Map::radius) exceeds `i32::MAX`, as
+    /// [`Cell::disc`] does.
+    fn water_cells(&self) -> impl Iterator<Item = Cell> + '_ {
+        Cell { q: 0, r: 0 }
+            .disc(self.radius())
+            .filter(|&cell| self.is_water(cell))
+    }
+    /// Iterate over all cells whose terrain is [`Terrain::Clear`].
+    /// Cells are yielded in ascending order by `q`, then `r`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if [`radius`](Map::radius) exceeds `i32::MAX`, as
+    /// [`Cell::disc`] does.
+    fn clear_cells(&self) -> impl Iterator<Item = Cell> + '_ {
+        Cell { q: 0, r: 0 }
+            .disc(self.radius())
+            .filter(|&cell| matches!(self.terrain(cell), Some(Terrain::Clear)))
+    }
+
+    /// Return whether `cell` is land ([`Terrain::Island`] or [`Terrain::Cliff`]).
+    /// Returns `false` for cells outside the map.
+    #[must_use]
+    fn is_land(&self, cell: Cell) -> bool {
+        self.terrain(cell).is_some_and(|t| t.is_land())
+    }
+    /// Return whether `cell` is water ([`Terrain::Clear`] or [`Terrain::Rock`]).
+    /// Returns `false` for cells outside the map.
+    #[must_use]
+    fn is_water(&self, cell: Cell) -> bool {
+        self.terrain(cell).is_some_and(|t| t.is_water())
+    }
+}
+
+/// A complete hexagonal map centered on `Cell { q: 0, r: 0 }`.
+///
 /// A map of radius `R` contains exactly `3 * R * (R + 1) + 1` cells,
 /// each with one terrain value. Its cells satisfy `|q| <= R`, `|r| <= R`
 /// and `|s| <= R`, where `s = -q - r`. Construction validates these
 /// invariants and stores cells in ascending order by `q`, then `r`.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Map {
+pub struct DefaultMap {
     radius: u32,
     starts: Vec<usize>,
     terrain: Vec<(Cell, Terrain)>,
 }
 
-/// A validation failure returned by [`Map::try_new`].
+/// A validation failure returned by [`DefaultMap::try_new`].
 ///
 /// Validation checks the radius, cell count, duplicates and boundaries in that
 /// order, returning the first failure. The coordinate radius limit is checked
@@ -38,18 +135,18 @@ pub enum Error {
     ErrCellOut,
 }
 
-impl Map {
+impl DefaultMap {
     /// Return the starting terrain index of each column, from `q = -radius`
     /// through `q = radius`, assuming ascending `(q, r)` storage order.
     ///
-    /// Requires the radius and cell count to pass [`Map::try_new`] validation.
+    /// Requires the radius and cell count to pass [`DefaultMap::try_new`] validation.
     ///
     /// # Panics
     ///
     /// Panics if a computed column length cannot be represented as `usize`.
     /// In builds with overflow checks, also panics if coordinate or index
     /// arithmetic overflows. These conditions cannot occur for radii and cell
-    /// counts validated by [`Map::try_new`].
+    /// counts validated by [`DefaultMap::try_new`].
     fn start(radius: u32) -> Vec<usize> {
         let mut starts = Vec::new();
         let mut index = 0;
@@ -78,7 +175,7 @@ impl Map {
     /// # Panics
     ///
     /// May panic if [`Cell::s`] overflows.
-    /// This cannot occur for radii accepted by [`Map::try_new`].
+    /// This cannot occur for radii accepted by [`DefaultMap::try_new`].
     fn check_out_of_map(terrain: &[(Cell, Terrain)], radius: u32) -> bool {
         for (cell, _) in terrain {
             if !(cell.q.unsigned_abs() <= radius && cell.r.unsigned_abs() <= radius) {
@@ -101,7 +198,7 @@ impl Map {
     /// column index or cell offset cannot be represented as `usize`, or the
     /// column index is outside `self.starts`. In builds with overflow checks,
     /// also panics if coordinate or index arithmetic overflows. These conditions
-    /// cannot occur for maps constructed by [`Map::try_new`] when
+    /// cannot occur for maps constructed by [`DefaultMap::try_new`] when
     /// [`Map::contains`] returns `true` for the cell.
     fn cell_index(&self, cell: Cell) -> usize {
         let Cell { q, r } = cell;
@@ -129,7 +226,7 @@ impl Map {
     /// # Panics
     ///
     /// May panic if the supplied iterator panics while being converted or consumed.
-    pub fn try_new(radius: u32, cells: impl IntoIterator<Item = (Cell, Terrain)>) -> Result<Map, Error> {
+    pub fn try_new(radius: u32, cells: impl IntoIterator<Item = (Cell, Terrain)>) -> Result<Self, Error> {
         if radius > (i32::MAX / 2) as u32 {
             // prevents overflow in start(), where operations like R - q can reach 2 * R
             return Err(Error::ErrRadius);
@@ -160,22 +257,23 @@ impl Map {
 
         let starts = Self::start(radius);
 
-        Ok(Map {
+        Ok(Self {
             radius,
             starts,
             terrain,
         })
     }
+}
+
+impl Map for DefaultMap {
     /// Return the map's radius in hexagonal cell steps from the origin.
-    #[must_use]
-    pub fn radius(&self) -> u32 {
+    fn radius(&self) -> u32 {
         self.radius
     }
     /// Return whether `cell` lies within the map, including its boundary.
     ///
     /// Accepts any `i32` coordinates; out-of-range coordinates return `false`.
-    #[must_use]
-    pub fn contains(&self, cell: Cell) -> bool {
+    fn contains(&self, cell: Cell) -> bool {
         let Cell { q, r } = cell;
 
         if !(q.unsigned_abs() <= self.radius && r.unsigned_abs() <= self.radius) {
@@ -185,8 +283,7 @@ impl Map {
         s.unsigned_abs() <= self.radius
     }
     /// Return the terrain at `cell`, or `None` when it lies outside the map.
-    #[must_use]
-    pub fn terrain(&self, cell: Cell) -> Option<Terrain> {
+    fn terrain(&self, cell: Cell) -> Option<Terrain> {
         if !self.contains(cell) {
             return None;
         }
@@ -196,8 +293,7 @@ impl Map {
     }
     /// Return whether `cell` is land ([`Terrain::Island`] or [`Terrain::Cliff`]).
     /// Returns `false` for cells outside the map.
-    #[must_use]
-    pub fn is_land(&self, cell: Cell) -> bool {
+    fn is_land(&self, cell: Cell) -> bool {
         if !self.contains(cell) {
             return false;
         }
@@ -205,8 +301,7 @@ impl Map {
     }
     /// Return whether `cell` is water ([`Terrain::Clear`] or [`Terrain::Rock`]).
     /// Returns `false` for cells outside the map.
-    #[must_use]
-    pub fn is_water(&self, cell: Cell) -> bool {
+    fn is_water(&self, cell: Cell) -> bool {
         if !self.contains(cell) {
             return false;
         }
@@ -214,8 +309,7 @@ impl Map {
     }
     /// Return the six corner cells in counter-clockwise order, starting east.
     /// The order is east, northeast, northwest, west, southwest, southeast.
-    #[must_use]
-    pub fn corners(&self) -> [Cell; 6] {
+    fn corners(&self) -> [Cell; 6] {
         let rad = self.radius.cast_signed();
         [
             Cell { q: rad, r: 0 },
@@ -228,7 +322,7 @@ impl Map {
     }
     /// Iterate over all water cells ([`Terrain::Clear`] and [`Terrain::Rock`]).
     /// Cells are yielded in ascending order by `q`, then `r`.
-    pub fn water_cells(&self) -> impl Iterator<Item = Cell> + '_ {
+    fn water_cells(&self) -> impl Iterator<Item = Cell> + '_ {
         self.terrain
             .iter()
             .filter(|(_, terrain)| terrain.is_water())
@@ -236,7 +330,7 @@ impl Map {
     }
     /// Iterate over all cells whose terrain is [`Terrain::Clear`].
     /// Cells are yielded in ascending order by `q`, then `r`.
-    pub fn clear_cells(&self) -> impl Iterator<Item = Cell> + '_ {
+    fn clear_cells(&self) -> impl Iterator<Item = Cell> + '_ {
         self.terrain
             .iter()
             .filter(|(_, terrain)| matches!(terrain, Terrain::Clear))

@@ -1,4 +1,4 @@
-use ap_2026_common_code_geometry::{Cell, Map, Terrain, visible};
+use ap_2026_common_code_geometry::{Cell, DefaultMap, Terrain, visible};
 use shared::IslandId;
 use std::collections::BTreeMap;
 
@@ -6,9 +6,9 @@ use std::collections::BTreeMap;
 ///
 /// # Panics
 ///
-/// Panics if the radius is too large for `Cell::disc` or `Map::try_new`, a
+/// Panics if the radius is too large for `Cell::disc` or `DefaultMap::try_new`, a
 /// replacement lies outside the map, or map construction fails validation.
-fn test_map(radius: u32, replacements: &[(Cell, Terrain)]) -> Map {
+fn test_map(radius: u32, replacements: &[(Cell, Terrain)]) -> DefaultMap {
     let mut terrain: BTreeMap<_, _> = Cell { q: 0, r: 0 }
         .disc(radius)
         .map(|cell| (cell, Terrain::Clear))
@@ -20,7 +20,7 @@ fn test_map(radius: u32, replacements: &[(Cell, Terrain)]) -> Map {
             .expect("Replacement cell must be inside the test map") = replacement;
     }
 
-    Map::try_new(radius, terrain).expect("Test map must be complete and valid")
+    DefaultMap::try_new(radius, terrain).expect("Test map must be complete and valid")
 }
 
 // Checks that a cell can see itself even with zero vision range and land terrain.

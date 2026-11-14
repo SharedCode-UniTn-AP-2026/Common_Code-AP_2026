@@ -94,7 +94,7 @@ fn sample_numerators(from: Cell, to: Cell, k: i32, n: i32) -> (i64, i64) {
 /// Interior samples block visibility only when all their nearest
 /// candidate cells are land. The endpoints' terrain is ignored.
 #[must_use]
-pub fn visible(map: &Map, from: Cell, to: Cell, vision_range: u32) -> bool {
+pub fn visible(map: &impl Map, from: Cell, to: Cell, vision_range: u32) -> bool {
     // Check if the cells are inside the map
     if !map.contains(from) || !map.contains(to) {
         return false;
