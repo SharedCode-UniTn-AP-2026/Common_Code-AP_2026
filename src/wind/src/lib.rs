@@ -1,7 +1,7 @@
 //! # Wind Generation
 //!
 //! This module provides deterministic wind direction generation based on a
-//! seed and a sequence of rounds.
+//! seed and a round number.
 //!
 //! Wind directions are represented as a cyclic space containing six possible
 //! directions. The generated sequence is divided into fixed-size blocks,
@@ -85,15 +85,15 @@ use rand::{Rng, RngExt, SeedableRng};
 use std::cmp::min;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-/// The time frame in which the wind needs to cover all six directions
+// The time frame in which the wind needs to cover all six directions
 const WINDOW_SIZE: u32 = 60;
-
+// The size of the block used for computing the wind direction
 // Integer division should always floor
 const BLOCK_SIZE: u32 = (WINDOW_SIZE - 1) / 2;
+// Number of available directions
 const DIRECTION_NUMBER: u32 = 6;
 
 #[must_use]
-
 /// Calculates the wind direction for a given round.
 ///
 /// # Arguments
@@ -116,9 +116,12 @@ pub fn wind_at(seed: Seed, round: Round) -> Direction {
     Direction::from(block_at(seed, block_number)[(round % BLOCK_SIZE) as usize])
 }
 
-/// Directions and how long each direction has remained unvisited. If the selected
-/// direction would make reaching the ending anchor impossible within the remaining
-/// rounds, an alternative direction is chosen.
+/// Calculates `BLOCK_SIZE` directions for a given seed and block number, guaranteeing that each
+/// `Direction` variant appears at least once inside the block, which itself guarantees the same
+/// result for each `WINDOWS_SIZE` long sequence of wind directions.
+/// The generation of wind directions is probabilistic.
+/// If the selected direction would make reaching the ending anchor impossible within the remaining
+/// rounds, an alternative direction is enforced.
 ///
 /// # Arguments
 ///
@@ -176,7 +179,7 @@ fn block_at(seed: Seed, block_number: usize) -> [u32; BLOCK_SIZE as usize] {
 
 /// Performs addition with wraparound over the six possible directions.
 ///
-/// The result is normalized to the range `0..6`, ensuring that negative
+/// The result is normalized to the range `0..DIRECTION_NUMBER`, ensuring that negative
 /// and positive additions both produce a valid direction index.
 ///
 /// # Arguments
@@ -186,7 +189,7 @@ fn block_at(seed: Seed, block_number: usize) -> [u32; BLOCK_SIZE as usize] {
 ///
 /// # Returns
 ///
-/// The result of `(x + y) mod 6`, represented as a `u32` in the range `0..6`.
+/// The result of `(x + y) mod DIRECTION_NUMBER`, represented as a `u32` in the range `0..6`.
 ///
 /// # Examples
 ///
@@ -200,7 +203,7 @@ fn safe_addition(x: i32, y: i32) -> u32 {
     (x + y).rem_euclid(6).cast_unsigned()
 }
 
-/// Calculates a deterministic anchor direction for a given block.
+/// Calculates a deterministic anchor direction for a given block number.
 ///
 /// The anchor is derived by hashing the seed and block number, then mapping
 /// the resulting hash to one of the available directions.
@@ -231,25 +234,25 @@ fn calculate_anchor(seed: Seed, block_number: usize) -> u32 {
         .expect("Direction number is a u32, so the modulo should return a u32")
 }
 
-/// Determines the preferred direction to move towards the ending anchor.
+/// Determines the numerical value of the preferred `Direction` to move towards the ending anchor.
 ///
 /// If the current direction is already equal to the ending anchor or one of
-/// its adjacent directions, the current direction is returned. Otherwise,
-/// the closest adjacent direction to the ending anchor is selected.
+/// its adjacent directions, the current direction number is returned. Otherwise,
+/// the closest adjacent direction number to the ending anchor is selected.
 ///
 /// # Arguments
 ///
-/// * `current` - The current direction index.
-/// * `end` - The ending anchor direction.
+/// * `current` - The current direction number.
+/// * `end` - The ending anchor direction number.
 ///
 /// # Returns
 ///
-/// The preferred target direction, represented as an `i32`.
+/// The preferred target direction number, represented as an `i32`.
 ///
 /// # Examples
 ///
 /// ```
-/// assert_eq!(calculate_end_target(0, 3), 1);
+/// assert_eq!(calculate_end_target(0, 3), 2);
 /// assert_eq!(calculate_end_target(2, 2), 2);
 /// ```
 fn calculate_end_target(current: i32, end: i32) -> i32 {
@@ -268,7 +271,7 @@ fn calculate_end_target(current: i32, end: i32) -> i32 {
 }
 
 /// Calculates the minimum number of movements required to visit all unvisited
-/// directions and reach the ending anchor.
+/// directions and reach a valid `Direction` with respect to the relative ending anchor.
 ///
 /// The calculation considers the two possible traversal orders of the
 /// unvisited directions around the cyclic direction space and chooses the
@@ -283,7 +286,7 @@ fn calculate_end_target(current: i32, end: i32) -> i32 {
 /// # Returns
 ///
 /// The minimum number of movements required to visit all remaining directions
-/// and reach the ending anchor.
+/// and reach a valid `Direction` with respect to the relative ending anchor.
 ///
 /// # Examples
 ///
@@ -330,14 +333,14 @@ fn visit_time(current: u32, visited: [bool; DIRECTION_NUMBER as usize], end: u32
 /// Directions with the highest age are considered equally eligible. If
 /// multiple directions share the highest age, one is selected randomly.
 ///
-/// The selected movement is adjusted when necessary to ensure that the
+/// The selected movement is adjusted when necessary to ensure that a valid
 /// ending target can still be reached within the remaining rounds.
 ///
 /// # Arguments
 ///
-/// * `age` - The number of rounds each direction has remained unvisited.
-/// * `current` - The current direction index.
-/// * `end` - The ending anchor direction.
+/// * `age` - An array containing the number of rounds each direction has remained unvisited.
+/// * `current` - The current direction number.
+/// * `end` - The ending anchor direction number.
 /// * `rng` - The random number generator used to break ties.
 /// * `remaining` - The number of rounds remaining in the current block.
 ///
@@ -404,10 +407,10 @@ fn towards_oldest_choice(
 ///
 /// # Arguments
 ///
-/// * `age` - The number of rounds each direction has remained unvisited.
-/// * `current` - The current direction index.
-/// * `end` - The ending anchor direction.
-/// * `rng` - The random number generator used for probabilistic selection.
+/// * `age` - An array containing the number of rounds each direction has remained unvisited.
+/// * `current` - The current direction number.
+/// * `end` - The ending anchor direction number.
+/// * `rng` - The random number generator used to break ties.
 /// * `remaining` - The number of rounds remaining in the current block.
 ///
 /// # Returns
