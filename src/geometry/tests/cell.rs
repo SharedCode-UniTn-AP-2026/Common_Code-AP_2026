@@ -81,7 +81,7 @@ proptest! {
     //check the distance correctness using another equivalent formula
     #[test]
     fn test_distance_matches_max_formula(a in any_cell(), b in any_cell()) {
-        prop_assert_eq!(a.distance(b), distance_max_formula(a, b))
+        prop_assert_eq!(a.distance(b), distance_max_formula(a, b));
     }
 
     // --- Neighbours ---
