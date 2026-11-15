@@ -1,4 +1,38 @@
-//! Module containing the `wind_at` function
+//! # Wind Generation
+//!
+//! This module provides deterministic wind direction generation based on a
+//! seed and a sequence of rounds.
+//!
+//! Wind directions are represented as a cyclic space containing six possible
+//! directions. The generated sequence is divided into fixed-size blocks,
+//! each having a deterministic starting and ending anchor.
+//!
+//! ## Algorithm
+//!
+//! Each block is generated using a combination of probabilistic selection
+//! and direction visitation tracking.
+//!
+//! - **Anchors:** Each block has deterministic anchor directions derived
+//!   from the seed and block index.
+//! - **Direction tracking:** The algorithm tracks visited directions and
+//!   their respective ages to encourage exploration of all directions.
+//! - **Probabilistic selection:** Older directions have a higher probability
+//!   of being selected, while allowing the wind to remain in its current
+//!   direction.
+//! - **Block continuity:** Each block is constrained to reach the next
+//!   block's anchor, ensuring continuity between consecutive blocks.
+//!
+//! ## Determinism
+//!
+//! Given the same seed and round, the generated wind direction is intended
+//! to be reproducible.
+//!
+//! ## Examples
+//!
+//! ```
+//! let seed = 12345;
+//! let direction = wind_at(seed, 30);
+//! ```
 
 //! Do not change these
 #![deny(unsafe_code)]
@@ -59,12 +93,47 @@ const BLOCK_SIZE: u32 = (WINDOW_SIZE - 1) / 2;
 const DIRECTION_NUMBER: u32 = 6;
 
 #[must_use]
+
+/// Calculates the wind direction for a given round.
+///
+/// # Arguments
+///
+/// * `seed` - The seed used to generate the wind sequence.
+/// * `round` - The round for which the wind direction is calculated.
+///
+/// # Returns
+///
+/// The [`Direction`] associated with the specified round.
+///
+/// # Examples
+///
+/// ```
+/// let direction: Direction = wind_at(dummy_seed, 30);
+/// ```
 pub fn wind_at(seed: Seed, round: Round) -> Direction {
     let block_number = (round / BLOCK_SIZE) as usize;
 
     Direction::from(block_at(seed, block_number)[(round % BLOCK_SIZE) as usize])
 }
 
+/// Directions and how long each direction has remained unvisited. If the selected
+/// direction would make reaching the ending anchor impossible within the remaining
+/// rounds, an alternative direction is chosen.
+///
+/// # Arguments
+///
+/// * `seed` - The seed used to initialize the random number generator and calculate
+///   the block's anchor directions.
+/// * `block_number` - The index of the block to generate.
+///
+/// # Returns
+///
+/// An array containing `BLOCK_SIZE` wind directions.
+///
+/// # Panics
+///
+/// Panics if a generated direction index cannot be converted to `u32`, which should
+/// not occur when the direction index is within the valid range.
 fn block_at(seed: Seed, block_number: usize) -> [u32; BLOCK_SIZE as usize] {
     let mut rng = StdRng::seed_from_u64(seed);
 
@@ -105,10 +174,52 @@ fn block_at(seed: Seed, block_number: usize) -> [u32; BLOCK_SIZE as usize] {
     block
 }
 
+/// Performs addition with wraparound over the six possible directions.
+///
+/// The result is normalized to the range `0..6`, ensuring that negative
+/// and positive additions both produce a valid direction index.
+///
+/// # Arguments
+///
+/// * `x` - The left-hand operand.
+/// * `y` - The right-hand operand.
+///
+/// # Returns
+///
+/// The result of `(x + y) mod 6`, represented as a `u32` in the range `0..6`.
+///
+/// # Examples
+///
+///  ```
+/// assert_eq!(safe_addition(4, 1), 5);
+/// assert_eq!(safe_addition(5, 1), 0);
+/// assert_eq!(safe_addition(0, -1), 5);
+/// assert_eq!(safe_addition(2, -4), 4);
+/// ```
 fn safe_addition(x: i32, y: i32) -> u32 {
     (x + y).rem_euclid(6).cast_unsigned()
 }
 
+/// Calculates a deterministic anchor direction for a given block.
+///
+/// The anchor is derived by hashing the seed and block number, then mapping
+/// the resulting hash to one of the available directions.
+///
+/// # Arguments
+///
+/// * `seed` - The seed used to generate the anchor.
+/// * `block_number` - The index of the block.
+///
+/// # Returns
+///
+/// A direction index in the range `0..DIRECTION_NUMBER`.
+///
+/// # Examples
+///
+/// ```
+/// let anchor = calculate_anchor(12345, 0);
+/// assert!(anchor < DIRECTION_NUMBER);
+/// ```
 fn calculate_anchor(seed: Seed, block_number: usize) -> u32 {
     let to_hash = format!("{seed}:{block_number}");
     let mut hasher = DefaultHasher::new();
@@ -120,6 +231,27 @@ fn calculate_anchor(seed: Seed, block_number: usize) -> u32 {
         .expect("Direction number is a u32, so the modulo should return a u32")
 }
 
+/// Determines the preferred direction to move towards the ending anchor.
+///
+/// If the current direction is already equal to the ending anchor or one of
+/// its adjacent directions, the current direction is returned. Otherwise,
+/// the closest adjacent direction to the ending anchor is selected.
+///
+/// # Arguments
+///
+/// * `current` - The current direction index.
+/// * `end` - The ending anchor direction.
+///
+/// # Returns
+///
+/// The preferred target direction, represented as an `i32`.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(calculate_end_target(0, 3), 1);
+/// assert_eq!(calculate_end_target(2, 2), 2);
+/// ```
 fn calculate_end_target(current: i32, end: i32) -> i32 {
     let end_plus = safe_addition(end, 1).cast_signed();
     let end_minus = safe_addition(end, -1).cast_signed();
@@ -135,6 +267,30 @@ fn calculate_end_target(current: i32, end: i32) -> i32 {
     }
 }
 
+/// Calculates the minimum number of movements required to visit all unvisited
+/// directions and reach the ending anchor.
+///
+/// The calculation considers the two possible traversal orders of the
+/// unvisited directions around the cyclic direction space and chooses the
+/// shorter route.
+///
+/// # Arguments
+///
+/// * `current` - The current direction index.
+/// * `visited` - An array indicating which directions have already been visited.
+/// * `end` - The ending anchor direction.
+///
+/// # Returns
+///
+/// The minimum number of movements required to visit all remaining directions
+/// and reach the ending anchor.
+///
+/// # Examples
+///
+/// ```
+/// let visited = [false, false, false, true, true, false];
+/// assert_eq!(visit_time(3, visited, 3), 5);
+/// ```
 fn visit_time(current: u32, visited: [bool; DIRECTION_NUMBER as usize], end: u32) -> u32 {
     let mut start: Option<i32> = None;
     let mut last: Option<i32> = None;
@@ -169,6 +325,35 @@ fn visit_time(current: u32, visited: [bool; DIRECTION_NUMBER as usize], end: u32
     }
 }
 
+/// Selects a movement towards one of the oldest unvisited directions.
+///
+/// Directions with the highest age are considered equally eligible. If
+/// multiple directions share the highest age, one is selected randomly.
+///
+/// The selected movement is adjusted when necessary to ensure that the
+/// ending target can still be reached within the remaining rounds.
+///
+/// # Arguments
+///
+/// * `age` - The number of rounds each direction has remained unvisited.
+/// * `current` - The current direction index.
+/// * `end` - The ending anchor direction.
+/// * `rng` - The random number generator used to break ties.
+/// * `remaining` - The number of rounds remaining in the current block.
+///
+/// # Returns
+///
+/// The movement offset required to move towards the selected direction.
+///
+/// # Examples
+///
+/// ```
+/// let age = [0, 1, 2, 3, 4, 5];
+/// let mut rng = StdRng::seed_from_u64(42);
+///
+/// let choice = towards_oldest_choice(age, 0, 3, &mut rng, 10);
+/// assert!(choice == -1 || choice == 0 || choice == 1);
+/// ```
 fn towards_oldest_choice(
     age: [i32; DIRECTION_NUMBER as usize],
     current: u32,
@@ -208,6 +393,36 @@ fn towards_oldest_choice(
     tow
 }
 
+/// Selects a movement probabilistically based on the age of each direction.
+///
+/// Older directions receive a higher probability of being selected, encouraging
+/// directions that have not been visited recently to be revisited. The current
+/// direction receives an additional probability of remaining unchanged.
+///
+/// The selected movement is adjusted when necessary to ensure that the ending
+/// anchor remains reachable within the remaining rounds.
+///
+/// # Arguments
+///
+/// * `age` - The number of rounds each direction has remained unvisited.
+/// * `current` - The current direction index.
+/// * `end` - The ending anchor direction.
+/// * `rng` - The random number generator used for probabilistic selection.
+/// * `remaining` - The number of rounds remaining in the current block.
+///
+/// # Returns
+///
+/// The movement offset selected by the probabilistic algorithm.
+///
+/// # Examples
+///
+/// ```
+/// let age = [0, 1, 2, 3, 4, 5];
+/// let mut rng = StdRng::seed_from_u64(42);
+///
+/// let choice = probabilistic_choice(age, 0, 3, &mut rng, 10);
+/// assert!(choice >= -1 && choice <= 1);
+/// ```
 fn probabilistic_choice(
     age: [i32; DIRECTION_NUMBER as usize],
     current: u32,
@@ -254,6 +469,30 @@ fn probabilistic_choice(
     tow
 }
 
+/// Determines the shortest movement towards a target direction.
+///
+/// Since directions form a cyclic space, movement can wrap around either end
+/// of the direction range. If both directions are equally distant, movement
+/// towards the negative direction is preferred.
+///
+/// # Arguments
+///
+/// * `current` - The current direction index.
+/// * `target` - The target direction index.
+///
+/// # Returns
+///
+/// * `1` - Move one direction forward.
+/// * `-1` - Move one direction backward.
+/// * `0` - The current direction is already the target.
+///
+/// # Examples
+///
+/// ```
+/// assert_eq!(towards(0, 1), 1);
+/// assert_eq!(towards(0, 5), -1);
+/// assert_eq!(towards(2, 2), 0);
+/// ```
 fn towards(current: i32, target: i32) -> i32 {
     if current == target {
         return 0;
