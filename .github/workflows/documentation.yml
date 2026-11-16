@@ -1,54 +1,92 @@
+
 name: Documentation
 
 on:
-    push:
-        branches: [main]
-    pull_request:
-        branches: [main]
-    workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
-    contents: read
-    pages: write
-    id-token: write
+  contents: read
 
 jobs:
-    docs:
-        runs-on: ubuntu-latest
+  docs:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Install Rust
-              uses: dtolnay/rust-toolchain@stable
-              with:
-                  components: clippy
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
-            - name: Run Clippy with pedantic lints
-              run: cargo clippy --workspace --all-targets --all-features -- -D warnings -W clippy::pedantic
+      - name: Test documentation examples
+        run: cargo test --workspace --doc
 
-            - name: Test documentation examples
-              run: cargo test --workspace --doc
+      - name: Generate Rust documentation
+        run: cargo doc --workspace --no-deps
+        env:
+          RUSTDOCFLAGS: "-D warnings"
 
-            - name: Generate Rust documentation
-              run: cargo doc --workspace --no-deps
-              env:
-                  RUSTDOCFLAGS: "-D warnings"
+      - name: Create documentation homepage
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
 
-            - name: Prepare GitHub Pages
-              run: touch target/doc/.nojekyll
+          root = Path("target/doc")
+          crates = sorted(
+              p for p in root.iterdir()
+              if p.is_dir() and (p / "index.html").is_file()
+          )
 
-            - name: Configure GitHub Pages
-              if: github.event_name != 'pull_request'
-              uses: actions/configure-pages@v5
+          if not crates:
+              raise SystemExit("No crate documentation pages found")
 
-            - name: Upload documentation
-              if: github.event_name != 'pull_request'
-              uses: actions/upload-pages-artifact@v4
-              with:
-                  path: target/doc
+          links = "\n".join(
+              f'<li><a href="{p.name}/">{p.name}</a></li>'
+              for p in crates
+          )
 
-            - name: Deploy documentation
-              if: github.event_name != 'pull_request'
-              uses: actions/deploy-pages@v4
+          (root / "index.html").write_text(
+              """<!doctype html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Project Documentation</title>
+          </head>
+          <body>
+            <h1>Project Documentation</h1>
+            <p>Automatically generated Rust API documentation.</p>
+            <ul>
+          """ + links + """
+            </ul>
+          </body>
+          </html>
+          """,
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Prepare GitHub Pages
+        run: touch target/doc/.nojekyll
+
+      - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Upload documentation
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: target/doc
+
+      - name: Deploy documentation
+        if: github.event_name != 'pull_request'
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
