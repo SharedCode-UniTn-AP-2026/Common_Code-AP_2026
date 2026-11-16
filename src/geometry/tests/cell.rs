@@ -313,12 +313,18 @@ fn test_ring_accepts_radius_i32_max() {
     assert_eq!(ring.next(), Some(Cell { q: -i32::MAX, r: 0 }));
 }
 
-//check that ring panics when a yielded cell has a coordinate that does not fit
-//in i32; the docs promise this only in debug builds
-#[cfg(debug_assertions)]
+//check that ring panics when a yielded cell has a q that does not fit in i32
 #[test]
-#[should_panic(expected = "attempt to add with overflow")]
-fn test_ring_panics_on_overflow_in_debug() {
+#[should_panic(expected = "ring q overflows i32")]
+fn test_ring_panics_on_q_overflow() {
     let c = Cell { q: i32::MAX, r: 0 };
+    for _ in c.ring(1) {}
+}
+
+//check that ring panics when a yielded cell has an r that does not fit in i32
+#[test]
+#[should_panic(expected = "ring r overflows i32")]
+fn test_ring_panics_on_r_overflow() {
+    let c = Cell { q: 0, r: i32::MAX };
     for _ in c.ring(1) {}
 }
