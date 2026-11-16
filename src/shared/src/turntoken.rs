@@ -10,6 +10,14 @@ pub struct TurnToken {
     nonce: u64,
 }
 
+impl TurnToken {
+    /// A constructor for `TurnToken`.
+    #[must_use]
+    pub fn new(nonce: u64) -> Self {
+        Self { nonce }
+    }
+}
+
 impl fmt::Debug for TurnToken {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TurnToken").field("nonce", &"<redacted>").finish()
