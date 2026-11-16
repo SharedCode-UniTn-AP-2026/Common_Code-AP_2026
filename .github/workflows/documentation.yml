@@ -38,32 +38,25 @@ jobs:
           from pathlib import Path
 
           root = Path("target/doc")
-          crates = sorted(
-              p for p in root.iterdir()
-              if p.is_dir() and (p / "index.html").is_file()
-          )
+          target = "ap_2026_common_code"
 
-          if not crates:
-              raise SystemExit("No crate documentation pages found")
-
-          links = "\n".join(
-              f'<li><a href="{p.name}/">{p.name}</a></li>'
-              for p in crates
-          )
+          if not (root / target / "index.html").is_file():
+              raise SystemExit(f"Documentation not found: {target}")
 
           (root / "index.html").write_text(
               """<!doctype html>
           <html>
           <head>
             <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=ap_2026_common_code/">
+            <link rel="canonical" href="ap_2026_common_code/">
             <title>Project Documentation</title>
           </head>
           <body>
-            <h1>Project Documentation</h1>
-            <p>Automatically generated Rust API documentation.</p>
-            <ul>
-          """ + links + """
-            </ul>
+            <p>
+              Redirecting to
+              <a href="ap_2026_common_code/">Project Documentation</a>...
+            </p>
           </body>
           </html>
           """,
