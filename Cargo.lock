@@ -42,6 +42,8 @@ version = "0.1.0"
 name = "ap-2026-common-code-wind"
 version = "0.1.0"
 dependencies = [
+ "ap-2026-common-code-geometry",
+ "ap-2026-common-code-shared",
  "rand",
 ]
 

@@ -30,6 +30,8 @@
 //! ## Examples
 //!
 //! ```
+//! # use ap_2026_common_code_wind::wind_at;
+//!
 //! let seed = 12345;
 //! let direction = wind_at(seed, 30);
 //! ```
@@ -39,49 +41,10 @@
 #![deny(clippy::pedantic)]
 #![deny(missing_docs)]
 
-#[deprecated(note = "Change to official geometry implementation once merged")]
-type Seed = u64;
-
-#[deprecated(note = "Change to official geometry implementation once merged")]
-type Round = u32;
-
-#[allow(missing_docs)]
-#[deprecated(note = "Change to official geometry implementation once merged")]
-#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
-/// Temporary implementation of the `Direction` enum to test the code
-pub enum Direction {
-    East,
-    NorthEast,
-    NorthWest,
-    West,
-    SouthWest,
-    SouthEast,
-}
-
-impl From<u32> for Direction {
-    fn from(value: u32) -> Self {
-        match value {
-            0 => East,
-            1 => NorthEast,
-            2 => NorthWest,
-            3 => West,
-            4 => SouthWest,
-            5 => SouthEast,
-            _ => panic!("Invalid direction: {value}"),
-        }
-    }
-}
-
-#[deprecated(note = "Change to official geometry implementation once merged")]
-/// Calculates the relative angle between two `Direction`s represented in integer form
-fn relative_angle(current: i32, target: i32) -> i32 {
-    (current - target).abs().min(6 - (current - target).abs()).rem_euclid(6)
-}
-
-use crate::Direction::{East, NorthEast, NorthWest, SouthEast, SouthWest, West};
-use rand::prelude::IndexedRandom;
+use geometry::Direction;
 use rand::rngs::StdRng;
-use rand::{Rng, RngExt, SeedableRng};
+use rand::{RngExt, SeedableRng};
+use shared::{Round, Seed};
 use std::cmp::min;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
@@ -108,12 +71,15 @@ const DIRECTION_NUMBER: u32 = 6;
 /// # Examples
 ///
 /// ```
+/// # use ap_2026_common_code_wind::wind_at;
+/// # use geometry::Direction;
+/// # let dummy_seed = 42;
 /// let direction: Direction = wind_at(dummy_seed, 30);
 /// ```
 pub fn wind_at(seed: Seed, round: Round) -> Direction {
     let block_number = (round / BLOCK_SIZE) as usize;
 
-    Direction::from(block_at(seed, block_number)[(round % BLOCK_SIZE) as usize])
+    u32_to_direction(block_at(seed, block_number)[(round % BLOCK_SIZE) as usize])
 }
 
 /// Calculates `BLOCK_SIZE` directions for a given seed and block number, guaranteeing that each
@@ -193,7 +159,7 @@ fn block_at(seed: Seed, block_number: usize) -> [u32; BLOCK_SIZE as usize] {
 ///
 /// # Examples
 ///
-///  ```
+/// ```ignore
 /// assert_eq!(safe_addition(4, 1), 5);
 /// assert_eq!(safe_addition(5, 1), 0);
 /// assert_eq!(safe_addition(0, -1), 5);
@@ -201,6 +167,62 @@ fn block_at(seed: Seed, block_number: usize) -> [u32; BLOCK_SIZE as usize] {
 /// ```
 fn safe_addition(x: i32, y: i32) -> u32 {
     (x + y).rem_euclid(6).cast_unsigned()
+}
+
+/// Converts an u32 between `0..6` to a [`Direction`].
+///
+/// # Arguments
+///
+/// * `x` - The u32 to convert to a [`Direction`].
+///
+/// # Returns
+///
+/// The direction associated with the value of `x`
+///
+/// # Panics
+/// If `x` is not in the range `0..6`
+///
+/// # Examples
+/// ```ignore
+/// use geometry::Direction;
+/// let d = u32_to_direction(0);
+/// assert_eq!(d, Direction::East)
+/// ```
+fn u32_to_direction(x: u32) -> Direction {
+    match x {
+        0 => Direction::East,
+        1 => Direction::NorthEast,
+        2 => Direction::NorthWest,
+        3 => Direction::West,
+        4 => Direction::SouthWest,
+        5 => Direction::SouthEast,
+        _ => panic!("Invalid direction: {x}"),
+    }
+}
+
+/// Calculates the relative angle between two [`Direction`] represented as `i32`
+///
+/// # Arguments
+///
+/// * `x` - The first [`Direction`]
+/// * `y` - The second [`Direction`]
+///
+/// # Returns
+///
+/// An `i32` representing the relative angle between `x` and `y`
+///
+/// # Examples
+///
+/// ```ignore
+/// assert_eq!(relative_angle_i32(0, 2), 2);
+/// assert_eq!(relative_angle_i32(2, 5), 3);
+/// assert_eq!(relative_angle_i32(3, 1), 2);
+/// ```
+fn relative_angle_i32(x: i32, y: i32) -> i32 {
+    let d1 = u32_to_direction(x.cast_unsigned());
+    let d2 = u32_to_direction(y.cast_unsigned());
+
+    i32::from(d1.relative_angle(d2).cast_signed())
 }
 
 /// Calculates a deterministic anchor direction for a given block number.
@@ -219,7 +241,7 @@ fn safe_addition(x: i32, y: i32) -> u32 {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let anchor = calculate_anchor(12345, 0);
 /// assert!(anchor < DIRECTION_NUMBER);
 /// ```
@@ -251,7 +273,7 @@ fn calculate_anchor(seed: Seed, block_number: usize) -> u32 {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// assert_eq!(calculate_end_target(0, 3), 2);
 /// assert_eq!(calculate_end_target(2, 2), 2);
 /// ```
@@ -263,7 +285,7 @@ fn calculate_end_target(current: i32, end: i32) -> i32 {
         return current;
     }
 
-    if relative_angle(current, end_plus) < relative_angle(current, end_minus) {
+    if relative_angle_i32(current, end_plus) < relative_angle_i32(current, end_minus) {
         end_plus
     } else {
         end_minus
@@ -290,7 +312,7 @@ fn calculate_end_target(current: i32, end: i32) -> i32 {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let visited = [false, false, false, true, true, false];
 /// assert_eq!(visit_time(3, visited, 3), 5);
 /// ```
@@ -300,11 +322,16 @@ fn visit_time(current: u32, visited: [bool; DIRECTION_NUMBER as usize], end: u32
 
     if let Some((start, last)) = unvisited_endpoints(visited) {
         min(
-            relative_angle(current, start) + relative_angle(start, last) + relative_angle(last, calculate_end_target(last, end)),
-            relative_angle(current, last) + relative_angle(last, start) + relative_angle(start, calculate_end_target(start, end))
-        ).cast_unsigned()
+            relative_angle_i32(current, start)
+                + relative_angle_i32(start, last)
+                + relative_angle_i32(last, calculate_end_target(last, end)),
+            relative_angle_i32(current, last)
+                + relative_angle_i32(last, start)
+                + relative_angle_i32(start, calculate_end_target(start, end)),
+        )
+        .cast_unsigned()
     } else {
-        relative_angle(current, calculate_end_target(current, end)).cast_unsigned()
+        relative_angle_i32(current, calculate_end_target(current, end)).cast_unsigned()
     }
 }
 
@@ -330,7 +357,7 @@ fn visit_time(current: u32, visited: [bool; DIRECTION_NUMBER as usize], end: u32
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let visited = [false, false, false, true, true, false];
 /// let Some(start, last) = unvisited_endpoints(visited, 3);
 /// assert!(start.is_some());
@@ -353,7 +380,9 @@ fn unvisited_endpoints(visited: [bool; DIRECTION_NUMBER as usize]) -> Option<(i3
         }
     }
 
-    if let Some(start) = start && let Some(last) = last {
+    if let Some(start) = start
+        && let Some(last) = last
+    {
         Some((start, last))
     } else {
         None
@@ -380,7 +409,7 @@ fn unvisited_endpoints(visited: [bool; DIRECTION_NUMBER as usize]) -> Option<(i3
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let visited = [false, false, false, true, true, false];
 /// let forced = enforced_direction(3, visited, 3);
 /// assert!(forced >= -1 && forced <= 1);
@@ -390,8 +419,13 @@ fn enforced_direction(current: u32, visited: [bool; DIRECTION_NUMBER as usize], 
     let end = end.cast_signed();
 
     if let Some((start, last)) = unvisited_endpoints(visited) {
-        if relative_angle(current, start) + relative_angle(start, last) + relative_angle(last, calculate_end_target(last, end)) <
-            relative_angle(current, last) + relative_angle(last, start) + relative_angle(start, calculate_end_target(start, end)) {
+        if relative_angle_i32(current, start)
+            + relative_angle_i32(start, last)
+            + relative_angle_i32(last, calculate_end_target(last, end))
+            < relative_angle_i32(current, last)
+                + relative_angle_i32(last, start)
+                + relative_angle_i32(start, calculate_end_target(start, end))
+        {
             towards(current, start)
         } else {
             towards(current, last)
@@ -424,7 +458,7 @@ fn enforced_direction(current: u32, visited: [bool; DIRECTION_NUMBER as usize], 
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let age = [0, 1, 2, 3, 4, 5];
 /// let mut rng = StdRng::seed_from_u64(42);
 ///
@@ -470,7 +504,7 @@ fn probabilistic_choice(
     let end_target = calculate_end_target(current, end);
 
     // let tow_current = ((current as i32) + tow).rem_euclid(6);
-    if relative_angle(current, end_target) >= remaining - 2 {
+    if relative_angle_i32(current, end_target) >= remaining - 2 {
         tow = towards(current, end_target);
     }
 
@@ -496,7 +530,7 @@ fn probabilistic_choice(
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// assert_eq!(towards(0, 1), 1);
 /// assert_eq!(towards(0, 5), -1);
 /// assert_eq!(towards(2, 2), 0);
@@ -506,8 +540,8 @@ fn towards(current: i32, target: i32) -> i32 {
         return 0;
     }
 
-    if relative_angle(safe_addition(current, 1).cast_signed(), target)
-        < relative_angle(safe_addition(current, -1).cast_signed(), target)
+    if relative_angle_i32(safe_addition(current, 1).cast_signed(), target)
+        < relative_angle_i32(safe_addition(current, -1).cast_signed(), target)
     {
         1
     } else {
@@ -517,12 +551,13 @@ fn towards(current: i32, target: i32) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::Direction::{NorthEast, West};
+    use crate::Direction::NorthEast;
     use crate::{
         BLOCK_SIZE, DIRECTION_NUMBER, block_at, calculate_anchor, safe_addition, towards, visit_time, wind_at,
     };
     use rand::{Rng, rng};
 
+    // Tests the towards function correctness
     #[test]
     fn towards_test() {
         let dir1 = 1;
@@ -537,6 +572,7 @@ mod tests {
         assert_eq!(towards(target, dir3), 1);
     }
 
+    // Tests that a block starts from the start anchor and ends within one direction of the end anchor
     #[test]
     fn block_integrity_test() {
         let seed = rng().next_u64();
@@ -558,6 +594,7 @@ mod tests {
         assert_eq!(block2[0], second_anchor);
     }
 
+    // Tests that the wind_at function remains deterministic
     #[test]
     fn wind_at_test() {
         let seed = 1_528_890;
@@ -580,6 +617,7 @@ mod tests {
         assert_eq!(wind, NorthEast);
     }
 
+    // Tests the visit time function correctness
     #[test]
     fn visit_time_test() {
         assert_eq!(visit_time(3, [false, false, false, true, true, false], 3), 5);
@@ -590,6 +628,7 @@ mod tests {
         assert_eq!(visit_time(4, [true, false, false, false, true, true], 0), 3);
     }
 
+    // Tests that a block visits all possible directions
     #[test]
     fn all_directions_visited_test() {
         //for x in 0..3_000_000 {
