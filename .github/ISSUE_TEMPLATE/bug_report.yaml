@@ -19,7 +19,10 @@ body:
           description: In which of the components/folders in the repository did you find a bug?
           options:
               - Geometry
-              - Types
+              - Wind
+              - Clues
+              - Conformance
+              - Messages 
           default: 0
       validations:
           required: true
