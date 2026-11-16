@@ -52,7 +52,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 const WINDOW_SIZE: u32 = 60;
 // The size of the block used for computing the wind direction
 // Integer division should always floor
-const BLOCK_SIZE: u32 = (WINDOW_SIZE - 1) / 2;
+const BLOCK_SIZE: u32 = WINDOW_SIZE.div_ceil(2);
 // Number of available directions
 const DIRECTION_NUMBER: u32 = 6;
 
@@ -504,7 +504,7 @@ fn probabilistic_choice(
     let end_target = calculate_end_target(current, end);
 
     // let tow_current = ((current as i32) + tow).rem_euclid(6);
-    if relative_angle_i32(current, end_target) >= remaining - 2 {
+    if relative_angle_i32(current, end_target) + 1 >= remaining - 1 {
         tow = towards(current, end_target);
     }
 
@@ -608,7 +608,7 @@ mod tests {
         let block = block_at(seed, 0);
         assert_eq!(
             [
-                5, 0, 1, 0, 1, 2, 1, 0, 5, 4, 3, 2, 2, 1, 0, 5, 0, 1, 1, 0, 1, 2, 1, 2, 1, 1, 2, 3, 3
+                  5, 0, 1, 0, 1, 2, 1, 0, 5, 4, 3, 2, 2, 1, 0, 5, 0, 1, 1, 0, 1, 2, 1, 2, 1, 1, 2, 1, 2, 3
             ],
             block
         );
