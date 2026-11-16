@@ -157,7 +157,7 @@ fn block_at(seed: Seed, block_number: usize) -> [u32; BLOCK_SIZE as usize] {
 
         // The -1 is due to the fact that we need to consider the current rounds movement
         if visit_time(safe_addition(current.cast_signed(), choice), visited, end_direction) >= remaining_rounds - 1 {
-            choice = towards_oldest_choice(age, current, end_direction, &mut rng, remaining_rounds);
+            choice = enforced_direction(current, visited, end_direction);
         }
 
         let idx = safe_addition(current.cast_signed(), choice) as usize;
@@ -295,105 +295,110 @@ fn calculate_end_target(current: i32, end: i32) -> i32 {
 /// assert_eq!(visit_time(3, visited, 3), 5);
 /// ```
 fn visit_time(current: u32, visited: [bool; DIRECTION_NUMBER as usize], end: u32) -> u32 {
-    let mut start: Option<i32> = None;
-    let mut last: Option<i32> = None;
-    let mut unvisited = 0;
-    let mut j = current as usize;
-
-    // Find the first unvisited node and count unvisited nodes
-    for i in 0..DIRECTION_NUMBER {
-        j = (j + 1).rem_euclid(6);
-        if !visited[j] {
-            if start.is_none() {
-                start = Some(i32::try_from(j).expect("j is between 0 and 6"));
-            }
-
-            last = Some(i32::try_from(j).expect("j is between 0 and 6"));
-
-            unvisited += 1;
-        }
-    }
-
     let current = current.cast_signed();
     let end = end.cast_signed();
 
-    // If start is different from None, then so is last by construction
-    match (start, last) {
-        (Some(start), Some(last)) => min(
-            relative_angle(current, start) + (unvisited - 1) + relative_angle(last, calculate_end_target(last, end)),
-            relative_angle(current, last) + (unvisited - 1) + relative_angle(start, calculate_end_target(start, end)),
-        )
-        .cast_unsigned(),
-        _ => 0,
+    if let Some((start, last)) = unvisited_endpoints(visited) {
+        min(
+            relative_angle(current, start) + relative_angle(start, last) + relative_angle(last, calculate_end_target(last, end)),
+            relative_angle(current, last) + relative_angle(last, start) + relative_angle(start, calculate_end_target(start, end))
+        ).cast_unsigned()
+    } else {
+        relative_angle(current, calculate_end_target(current, end)).cast_unsigned()
     }
 }
 
-/// Selects a movement towards one of the oldest unvisited directions.
+/// Finds the first and last unvisited directions in the cyclic direction space.
 ///
-/// Directions with the highest age are considered equally eligible. If
-/// multiple directions share the highest age, one is selected randomly.
-///
-/// The selected movement is adjusted when necessary to ensure that a valid
-/// ending target can still be reached within the remaining rounds.
+/// This function scans through the direction range, identifying the boundaries (start and last)
+/// of the unvisited direction segments.
 ///
 /// # Arguments
 ///
-/// * `age` - An array containing the number of rounds each direction has remained unvisited.
-/// * `current` - The current direction number.
-/// * `end` - The ending anchor direction number.
-/// * `rng` - The random number generator used to break ties.
-/// * `remaining` - The number of rounds remaining in the current block.
+/// * `visited` - An array indicating which directions have already been visited.
 ///
 /// # Returns
 ///
-/// The movement offset required to move towards the selected direction.
+/// A tuple `Option<(i32, i32)>` containing:
+/// * `Some((start, last))` - The respective indexes of the first and last unvisited direction encountered.
+/// * `None` - If all directions have already been visited.
+///
+/// # Panics
+///
+/// Panics if a direction index cannot be successfully converted to an `i32`,
+/// which should not occur as indices are kept within the valid range of `0..DIRECTION_NUMBER`.
 ///
 /// # Examples
 ///
 /// ```
-/// let age = [0, 1, 2, 3, 4, 5];
-/// let mut rng = StdRng::seed_from_u64(42);
-///
-/// let choice = towards_oldest_choice(age, 0, 3, &mut rng, 10);
-/// assert!(choice == -1 || choice == 0 || choice == 1);
+/// let visited = [false, false, false, true, true, false];
+/// let Some(start, last) = unvisited_endpoints(visited, 3);
+/// assert!(start.is_some());
+/// assert!(last.is_some());
 /// ```
-fn towards_oldest_choice(
-    age: [i32; DIRECTION_NUMBER as usize],
-    current: u32,
-    end: u32,
-    rng: &mut StdRng,
-    remaining: u32,
-) -> i32 {
-    let max_value = *age.iter().max().unwrap_or(&0);
-    let max_idx: Vec<usize> = age
-        .iter()
-        .enumerate()
-        .filter(|(_, x)| **x == max_value)
-        .map(|(x, _)| x)
-        .collect();
+fn unvisited_endpoints(visited: [bool; DIRECTION_NUMBER as usize]) -> Option<(i32, i32)> {
+    let mut start: Option<i32> = None;
+    let mut last: Option<i32> = None;
+    let mut i: usize = 0;
 
-    let oldest_dir: i32 = i32::try_from(
-        max_idx
-            .choose(rng)
-            .expect("Could not choose one of the oldest")
-            .cast_signed(),
-    )
-    .expect("Could not convert oldest dir to i32");
+    // Find the first unvisited node and count unvisited nodes
+    for _ in 0..DIRECTION_NUMBER {
+        i = (i + 1).rem_euclid(6);
+        if !visited[i] {
+            if start.is_none() {
+                start = Some(i32::try_from(i).expect("i is between 0 and 6"));
+            }
 
-    let current = current.cast_signed();
-    let end = end.cast_signed();
-    let remaining = remaining.cast_signed();
-
-    let mut tow = towards(current, oldest_dir);
-
-    let end_target = calculate_end_target(safe_addition(current, tow).cast_signed(), end);
-
-    // let tow_current = ((current as i32) + tow).rem_euclid(6);
-    if relative_angle(safe_addition(current, tow).cast_signed(), end_target) >= remaining {
-        tow = towards(current, end_target);
+            last = Some(i32::try_from(i).expect("i is between 0 and 6"));
+        }
     }
 
-    tow
+    if let Some(start) = start && let Some(last) = last {
+        Some((start, last))
+    } else {
+        None
+    }
+}
+
+/// Determines the mandatory movement direction towards the closest unvisited acceptable endpoint.
+///
+/// Evaluates the two possible traversal paths across the unvisited directions
+/// (via `start` or via `last`) and selects the direction that minimizes the total
+/// movement cost required to cover all remaining unvisited nodes and reach an acceptable endpoint.
+///
+/// # Arguments
+///
+/// * `current` - The current direction index.
+/// * `visited` - An array indicating which directions have already been visited.
+/// * `end` - The ending anchor direction.
+///
+/// # Returns
+///
+/// The forced movement offset (`1`, `-1`, or `0`) towards the optimal unvisited endpoint,
+/// represented as an `i32`. Returns `0` (or retains the current direction) if all
+/// directions have already been visited.
+///
+/// # Examples
+///
+/// ```
+/// let visited = [false, false, false, true, true, false];
+/// let forced = enforced_direction(3, visited, 3);
+/// assert!(forced >= -1 && forced <= 1);
+/// ```
+fn enforced_direction(current: u32, visited: [bool; DIRECTION_NUMBER as usize], end: u32) -> i32 {
+    let current = current.cast_signed();
+    let end = end.cast_signed();
+
+    if let Some((start, last)) = unvisited_endpoints(visited) {
+        if relative_angle(current, start) + relative_angle(start, last) + relative_angle(last, calculate_end_target(last, end)) <
+            relative_angle(current, last) + relative_angle(last, start) + relative_angle(start, calculate_end_target(start, end)) {
+            towards(current, start)
+        } else {
+            towards(current, last)
+        }
+    } else {
+        towards(current, calculate_end_target(current, end))
+    }
 }
 
 /// Selects a movement probabilistically based on the age of each direction.
@@ -587,7 +592,7 @@ mod tests {
 
     #[test]
     fn all_directions_visited_test() {
-        // for x in 0..100000 {
+        //for x in 0..3_000_000 {
         let seed = rng().next_u64();
 
         // let seed = 14208738534138294339;
@@ -602,6 +607,6 @@ mod tests {
             visited[*x as usize] = true;
         }
         assert_eq!(visited.iter().filter(|x| **x).count(), 6);
-        // }
+        //}
     }
 }
