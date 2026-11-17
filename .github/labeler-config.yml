@@ -1,3 +1,4 @@
+#CHANGE
 'geometry':
   - changed-files:
       - any-glob-to-any-file: 'geometry/**/*'
@@ -6,3 +7,14 @@
   - changed-files:
       - any-glob-to-any-file: 'wind/**/*'
 
+'clues':
+  - changed-files:
+      - any-glob-to-any-file: 'clues/**/*'
+
+'conformance':
+  - changed-files:
+      - any-glob-to-any-file: 'conformance/**/*'
+
+'messages':
+  - changed-files:
+      - any-glob-to-any-file: 'messages/**/*'

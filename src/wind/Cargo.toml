@@ -8,3 +8,5 @@ path = "src/lib.rs"
 
 [dependencies]
 rand = "0.10.3"
+geometry = { package = "ap-2026-common-code-geometry", path = "../geometry" }
+shared = { package = "ap-2026-common-code-shared", path = "../shared" }
