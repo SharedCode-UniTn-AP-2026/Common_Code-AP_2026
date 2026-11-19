@@ -5,8 +5,9 @@
 //!
 //! All map cells are clear water unless explicitly overridden.
 
-use crate::{Cell, Terrain};
+use crate::{Cell, DefaultMap, Terrain};
 use shared::IslandId;
+use std::collections::BTreeMap;
 
 /// A cell pair with its expected visibility result.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -40,8 +41,8 @@ pub struct VisibilityCase {
     pub vectors: &'static [VisibilityVector],
 }
 
-/// Reference visibility cases from Protocol 3.2.
-pub const PROTOCOL_3_2_CASES: &[VisibilityCase] = &[
+/// Visibility cases with equally close intermediate cells (Protocol 3.2).
+pub const MIDPOINT_TIE_CASES: &[VisibilityCase] = &[
     VisibilityCase {
         name: "clear_clear",
         radius: 2,
@@ -478,3 +479,56 @@ pub const CORNER_CASES: &[VisibilityCase] = &[VisibilityCase {
         },
     ],
 }];
+
+/// Runs the public visibility vectors against a supplied `LoS` implementation.
+///
+/// The supplied function is tested in both directions for every vector.
+///
+/// # Panics
+///
+/// Panics if a reference map is invalid or a visibility result differs
+/// from the expected result.
+pub fn test_visible<F>(mut visible: F)
+where
+    F: FnMut(&DefaultMap, Cell, Cell, u32) -> bool,
+{
+    let visibility_cases = MIDPOINT_TIE_CASES
+        .iter()
+        .chain(RANGE_CASES.iter())
+        .chain(OBSTACLE_CASES.iter())
+        .chain(ISLAND_CASES.iter())
+        .chain(SURROUNDED_CASES.iter())
+        .chain(CORNER_CASES.iter());
+
+    for case in visibility_cases {
+        // Build a complete clear-water map.
+        let mut cells: BTreeMap<Cell, Terrain> = Cell { q: 0, r: 0 }
+            .disc(case.radius)
+            .map(|cell| (cell, Terrain::Clear))
+            .collect();
+
+        // Apply the terrain specified by the test vector.
+        for &(cell, terrain) in case.terrain {
+            *cells.get_mut(&cell).expect("Vector terrain must be inside the map") = terrain;
+        }
+
+        let map = DefaultMap::try_new(case.radius, cells).expect("Vector map must be valid");
+
+        // Verify each expected result in both directions.
+        for vector in case.vectors {
+            assert_eq!(
+                visible(&map, vector.from, vector.to, vector.vision_range),
+                vector.expected,
+                "Forward visibility failed in case: {}",
+                case.name
+            );
+
+            assert_eq!(
+                visible(&map, vector.to, vector.from, vector.vision_range),
+                vector.expected,
+                "Reverse visibility failed in case: {}",
+                case.name
+            );
+        }
+    }
+}
