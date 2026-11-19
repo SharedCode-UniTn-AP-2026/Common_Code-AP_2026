@@ -250,9 +250,9 @@ impl Cell {
     /// # Panics
     ///
     /// - Panics immediately if `radius > i32::MAX`.
-    /// - Panics (in debug builds) during iteration if a coordinate of a
-    ///   yielded cell overflows `i32`. This never happens for a cell inside
-    ///   a [`Map`](crate::Map).
+    /// - Panics during iteration if a coordinate of a yielded cell
+    ///   overflows `i32`. This never happens for a cell inside a
+    ///   [`Map`](crate::Map).
     ///
     /// # Examples
     ///
@@ -280,8 +280,8 @@ impl Cell {
                 lo.abs_diff(hi) as usize
             };
             (lo..=hi).step_by(step).map(move |dr| Cell {
-                q: self.q + dq,
-                r: self.r + dr,
+                q: self.q.checked_add(dq).expect("ring q overflows i32"),
+                r: self.r.checked_add(dr).expect("ring r overflows i32"),
             })
         })
     }

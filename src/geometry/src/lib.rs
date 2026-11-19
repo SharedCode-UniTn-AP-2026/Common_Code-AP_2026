@@ -13,5 +13,5 @@ pub mod test_vectors;
 
 pub use cell::{Cell, Direction};
 pub use los::visible;
-pub use map::{Error as MapError, Map};
+pub use map::{DefaultMap, Error as MapError, Map};
 pub use terrain::Terrain;

@@ -19,7 +19,10 @@ body:
           description: In which of the features/folders in the repository would you like to add a feature?
           options:
               - Geometry
-              - Types
+              - Wind
+              - Clues
+              - Conformance
+              - Messages 
           default: 0
       validations:
           required: true
