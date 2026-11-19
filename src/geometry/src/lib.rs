@@ -9,6 +9,7 @@ mod cell;
 mod los;
 mod map;
 mod terrain;
+pub mod test_vectors;
 
 pub use cell::{Cell, Direction};
 pub use los::visible;
