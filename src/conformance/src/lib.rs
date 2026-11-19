@@ -2,3 +2,6 @@
 #![deny(unsafe_code)]
 #![deny(clippy::pedantic)]
 #![deny(missing_docs)]
+
+mod chart;
+mod rejection;
