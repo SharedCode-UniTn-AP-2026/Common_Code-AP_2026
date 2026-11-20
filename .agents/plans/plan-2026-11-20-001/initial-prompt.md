@@ -1,0 +1,1 @@
+Check the documentation I wrote in @src/messages/src/lib.rs and correct my English. Do not change or lengthen my sentences unless they contain errors or statements that make the meaning unclear. Write this message in English in .agents/
