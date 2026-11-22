@@ -4,4 +4,4 @@
 #![deny(missing_docs)]
 
 pub mod channels;
-mod message_types;
+pub mod message_types;

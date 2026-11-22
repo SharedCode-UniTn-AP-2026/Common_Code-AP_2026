@@ -34,8 +34,9 @@ dependencies = [
 name = "ap-2026-common-code-messages"
 version = "0.1.0"
 dependencies = [
- "crossbeam-channel",
+ "ap-2026-common-code-geometry",
  "ap-2026-common-code-shared",
+ "crossbeam-channel",
 ]
 
 [[package]]

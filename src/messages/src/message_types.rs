@@ -1,7 +1,7 @@
-use shared::*;
 use geometry::Map;
+use shared::*;
 
-/// Messages sent from a Ship to the Admiralty.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ShipToAdmiralty {
 
     /// Submits the Ship's action and outgoing letters for the current round.
@@ -20,7 +20,7 @@ pub enum ShipToAdmiralty {
     },
 }
 
-/// Messages sent from the Admiralty to a Ship.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AdmiraltyToShip {
 
     /// Initializes a Ship before the first round begins, this is always the first message received by a Ship.
@@ -33,11 +33,7 @@ pub enum AdmiraltyToShip {
 
         /// Game parameters defining the numerical rules.
         params: Params,
-
-        /// Public map containing the Archipelago's terrain.
-        map: Map,
-
-        /// Seed used to calculate wind conditions across rounds.
+        map: Box<dyn Map>,
         weather_seed: Seed,
     },
 
@@ -87,7 +83,7 @@ pub enum AdmiraltyToShip {
     },
 }
 
-/// Control commands sent from the Cartographer to the Admiralty, these privileged commands allow the Cartographer to control game execution.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CartographerToAdmiralty {
 
     /// Pauses game execution.
@@ -121,7 +117,7 @@ pub enum CartographerToAdmiralty {
     Dump,
 }
 
-/// Messages sent from the Admiralty to the Cartographer.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AdmiraltyToCartographer {
 
     /// Reports the complete game state and events for a round.

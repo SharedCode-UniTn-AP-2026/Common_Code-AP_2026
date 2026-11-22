@@ -5,7 +5,7 @@ use std::fmt;
 /// Its `Debug` representation never reveals the nonce.
 ///
 /// See Protocol §7.1, "The exchange".
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Clone, Eq)]
 pub struct TurnToken {
     nonce: u64,
 }
