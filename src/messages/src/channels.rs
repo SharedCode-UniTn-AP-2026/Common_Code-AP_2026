@@ -132,7 +132,8 @@ impl ChannelOrganizer {
 }
 
 impl ShipMessageManager for ChannelOrganizer {
-    fn ship_broadcast(&self, message: AdmiraltyToShip) {
+    fn ship_broadcast(&mut self, message: AdmiraltyToShip) {
+        let mut disconneted_ships: Vec<ShipId> = vec![];
         for (id, channel) in &self.ship_channels {
             match channel.outbox().try_send(message.clone()) {
                 Ok(_) => {}
@@ -142,14 +143,19 @@ impl ShipMessageManager for ChannelOrganizer {
                         println!("Channel to ship {:?} is full. Message dropped.", id);
                     }
                     TrySendError::Disconnected(_) => {
-                        panic!("Channel to ship {:?} is disconnected. This should never happen.", id);
+                        println!("Channel to ship {:?} is disconnected.", id);
+                        // Remove the ship from the channel organizer if the channel is disconnected
+                        disconneted_ships.push(*id);
                     }
                 },
             }
         }
+        for id in disconneted_ships {
+            self.ship_channels.remove(&id);
+        }
     }
 
-    fn ship_send(&self, ship_id: ShipId, message: AdmiraltyToShip) {
+    fn ship_send(&mut self, ship_id: ShipId, message: AdmiraltyToShip) {
         if let Some(channel) = self.ship_channels.get(&ship_id) {
             match channel.outbox().try_send(message) {
                 Ok(_) => {}
@@ -157,30 +163,29 @@ impl ShipMessageManager for ChannelOrganizer {
                     println!("Channel to ship {:?} is full. Message dropped.", ship_id);
                 }
                 Err(TrySendError::Disconnected(_)) => {
-                    panic!(
-                        "Channel to ship {:?} is disconnected. This should never happen.",
-                        ship_id
-                    );
+                    println!("Channel to ship {:?} is disconnected.", ship_id);
+                    self.ship_channels.remove(&ship_id);
                 }
             }
         } else {
-            panic!(
-                "Tried to send message to ship with the non-existing id : {:?}. This should never happen.",
+            println!(
+                "Tried to send message to ship with the non-existing id : {:?}. ",
                 ship_id
             );
+            self.ship_channels.remove(&ship_id);
         }
     }
 
-    fn ship_receive(&self, ship_id: ShipId) -> Option<ShipToAdmiralty> {
+    fn ship_receive(&mut self, ship_id: ShipId) -> Option<ShipToAdmiralty> {
         if let Some(channel) = self.ship_channels.get(&ship_id) {
             let inbox = channel.inbox();
             match inbox.try_recv() {
                 Ok(message) => Some(message),
                 Err(TryRecvError::Disconnected) => {
-                    panic!(
-                        "Channel from ship {:?} is disconnected. This should never happen.",
-                        ship_id
-                    );
+                    println!("Channel from ship {:?} is disconnected. ", ship_id);
+
+                    self.ship_channels.remove(&ship_id);
+                    None
                 }
                 Err(TryRecvError::Empty) => match inbox.recv_timeout(Duration::from_millis(self.response_deadline)) {
                     Ok(msg) => Some(msg),
@@ -188,55 +193,21 @@ impl ShipMessageManager for ChannelOrganizer {
                     Err(RecvTimeoutError::Timeout) => None,
 
                     Err(RecvTimeoutError::Disconnected) => {
-                        panic!(
-                            "Channel from ship {:?} is disconnected. This should never happen.",
-                            ship_id
-                        );
+                        println!("Channel from ship {:?} is disconnected. ", ship_id);
+
+                        self.ship_channels.remove(&ship_id);
+                        None
                     }
                 },
             }
         } else {
-            panic!(
-                "Tried to receive message from ship with the non-existing id : {:?}. This should never happen.",
+            println!(
+                "Tried to receive message from ship with the non-existing id : {:?}. ",
                 ship_id
             );
-        }
-    }
 
-    fn ship_receive_important(&self, ship_id: ShipId) -> ShipToAdmiralty {
-        if let Some(channel) = self.ship_channels.get(&ship_id) {
-            let inbox = channel.inbox();
-            match inbox.try_recv() {
-                Ok(message) => message,
-                Err(TryRecvError::Disconnected) => {
-                    panic!(
-                        "Channel from ship {:?} is disconnected. This should never happen.",
-                        ship_id
-                    );
-                }
-                Err(TryRecvError::Empty) => match inbox.recv_timeout(Duration::from_millis(150)) {
-                    Ok(msg) => msg,
-
-                    Err(RecvTimeoutError::Timeout) => {
-                        panic!(
-                            "Important message from ship with id {:?} was not received within 150ms.",
-                            ship_id
-                        );
-                    }
-
-                    Err(RecvTimeoutError::Disconnected) => {
-                        panic!(
-                            "Channel from ship {:?} is disconnected. This should never happen.",
-                            ship_id
-                        );
-                    }
-                },
-            }
-        } else {
-            panic!(
-                "Tried to receive message from ship with the non-existing id : {:?}. This should never happen.",
-                ship_id
-            );
+            self.ship_channels.remove(&ship_id);
+            None
         }
     }
 }
@@ -261,10 +232,10 @@ impl CartographerMessageManager for ChannelOrganizer {
             Err(TryRecvError::Disconnected) => {
                 panic!("Channel from cartographer is disconnected. This should never happen.");
             }
-            Err(TryRecvError::Empty) => match inbox.recv_timeout(Duration::from_millis(150)) {
+            Err(TryRecvError::Empty) => match inbox.recv_timeout(Duration::from_secs(1)) {
                 Ok(msg) => Some(msg),
                 Err(RecvTimeoutError::Timeout) => {
-                    panic!("Message from cartographer was not received within 150ms.");
+                    panic!("Message from cartographer was not received within 1s.");
                 }
                 Err(RecvTimeoutError::Disconnected) => {
                     panic!("Channel from cartographer is disconnected. This should never happen.");
