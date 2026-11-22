@@ -1,3 +1,5 @@
+use shared::{Round, ShipId};
+
 /// Letter sent by a Ship to another Ship.
 ///
 /// Letters are included in the outbox of a submission and are
@@ -18,7 +20,6 @@ pub struct Letter {
     /// Free-text message addressed to the recipient.
     pub text: String,
 }
-
 
 /// Letter delivered to a Ship by the Admiralty.
 ///
@@ -41,7 +42,6 @@ pub struct Delivered {
     pub text: String,
 }
 
-
 /// Record of a letter relayed between two Ships.
 ///
 /// Used by the Admiralty to report inter-Ship communications
@@ -63,4 +63,3 @@ pub struct Relayed {
     /// Free-text content of the letter.
     pub text: String,
 }
-

@@ -3,5 +3,10 @@
 #![deny(clippy::pedantic)]
 #![deny(missing_docs)]
 
+pub mod types;
 pub mod channels;
 pub mod message_types;
+
+// TODO
+// - Docum
+// - Tetsts
