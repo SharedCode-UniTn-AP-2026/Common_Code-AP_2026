@@ -14,38 +14,23 @@ pub trait ComunicationChannel<T, U> {
     fn inbox(&self) -> &Receiver<U>;
 }
 
-/// Trait that defines helper functions to manage messages for the Ships.
+/// Trait that defines helper functions for entities that have to manage messages from/to the Ships.
 #[allow(unused)]
 pub trait ShipMessageManager {
     /// Sends a message to all ships.
-    ///
-    /// # Panics
-    /// - Will panic if a channel to a ship is disconnected.
-    fn ship_broadcast(&self, message: AdmiraltyToShip);
+    fn ship_broadcast(&mut self, message: AdmiraltyToShip);
     /// Sends a message to a specific ship.
     ///
-    /// # Panics
-    /// - Will panic if the channel to the ship is disconnected.
-    /// - Will panic if the ship_id does not exist in the channel organizer.
-    fn ship_send(&self, ship_id: ShipId, message: AdmiraltyToShip);
+    fn ship_send(&mut self, ship_id: ShipId, message: AdmiraltyToShip);
     /// Receives a message from a specific ship.
     /// Hangs until a message is received or **the response deadline is reached**.
     ///
-    /// # Panics
-    /// - Will panic if the channel to the ship is disconnected.
-    /// - Will panic if the ship_id does not exist in the channel organizer.
-    fn ship_receive(&self, ship_id: ShipId) -> Option<ShipToAdmiralty>;
-    /// Receives a message from a specific ship.
-    /// Hangs until a message is received or 150ms have passed, after which it will **panic**.
-    ///
-    /// # Panics
-    /// - Will panic if the channel to the ship is disconnected.
-    /// - Will panic if the ship_id does not exist in the channel organizer.
-    /// - Will panic if 150ms have passed without receiving a message from the ship.
-    fn ship_receive_important(&self, ship_id: ShipId) -> ShipToAdmiralty;
+    /// # Returns
+    /// Returns `None` if the channel to the ship is disconnected or not present.
+    fn ship_receive(&mut self, ship_id: ShipId) -> Option<ShipToAdmiralty>;
 }
 
-/// Trait that defines helper functions to manage messages for the Cartographer.
+/// Trait that defines helper functions for entities that have to manage messages from/to the Cartographer.
 #[allow(unused)]
 pub trait CartographerMessageManager {
     /// Sends a message to the cartographer.
@@ -58,6 +43,6 @@ pub trait CartographerMessageManager {
     ///
     /// # Panics
     /// - Will panic if the channel from the cartographer is disconnected.
-    /// - Will panic if 150ms have passed without receiving a message from the cartographer.
+    /// - Will panic if 1s has passed without receiving a message from the cartographer.
     fn cartographer_receive(&self) -> Option<CartographerToAdmiralty>;
 }
