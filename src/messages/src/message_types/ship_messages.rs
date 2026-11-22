@@ -1,5 +1,7 @@
-use crate::types::{actions::*, end_reason::EndReason, events::Event, letters::*, outcome::Outcome, rejections::Rejection};
-use geometry::DefaultMap;
+use crate::types::{
+    actions::*, end_reason::EndReason, events::Event, letters::*, outcome::Outcome, rejections::Rejection,
+};
+use geometry::Map;
 use shared::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,7 +34,7 @@ pub enum AdmiraltyToShip {
 
         /// Game parameters defining the numerical rules.
         params: Params,
-        map: DefaultMap,
+        map: Map,
         weather_seed: Seed,
     },
 
