@@ -10,6 +10,15 @@ mod turntoken;
 pub use params::Params;
 pub use turntoken::TurnToken;
 
+/// Represents the mode of how the turns flow in the game.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum TurnMode {
+    /// Turns flow in a sequential manner, one ship at a time.
+    Sequential,
+    /// Turns flow in a simultaneous manner, all ships at once.
+    Simultaneous,
+}
+
 /// Identifies one of the six ships in the game.
 ///
 /// Valid game identifiers range from 0 to 5.
