@@ -1,3 +1,4 @@
+use clues::Clue;
 use shared::{Round, ShipId};
 
 /// Letter sent by a Ship to another Ship.

@@ -10,3 +10,4 @@ path = "src/lib.rs"
 crossbeam-channel = "0.5"
 shared.workspace = true
 geometry.workspace = true
+clues.workspace = true
