@@ -8,3 +8,5 @@ path = "src/lib.rs"
 
 [dependencies]
 crossbeam-channel = "0.5"
+shared.workspace = true
+geometry.workspace = true
