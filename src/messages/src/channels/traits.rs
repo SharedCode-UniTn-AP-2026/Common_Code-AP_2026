@@ -1,6 +1,6 @@
 //! This module defines the different traits used in the channel library.
 
-use crate::message_types::*;
+use crate::message_types::{cartographer_messages::*, ship_messages::*};
 use crossbeam_channel::{Receiver, Sender};
 use shared::ShipId;
 

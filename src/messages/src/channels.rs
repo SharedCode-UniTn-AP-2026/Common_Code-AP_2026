@@ -3,7 +3,7 @@
 pub mod channel_types;
 pub mod traits;
 
-use crate::message_types::*;
+use crate::message_types::{cartographer_messages::*, ship_messages::*};
 use channel_types::*;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, TryRecvError, TrySendError, bounded};
 use shared::ShipId;
