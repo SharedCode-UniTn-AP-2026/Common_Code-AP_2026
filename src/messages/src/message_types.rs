@@ -1,6 +1,7 @@
-use shared::*;
 use geometry::Map;
+use shared::*;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ShipToAdmiralty {
     Submit {
         round: Round,
@@ -10,13 +11,13 @@ pub enum ShipToAdmiralty {
     },
 }
 
-
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AdmiraltyToShip {
     Welcome {
         ship: ShipId,
         roster: Vec<ShipId>,
         params: Params,
-        map: Map,
+        map: Box<dyn Map>,
         weather_seed: Seed,
     },
 
@@ -42,8 +43,7 @@ pub enum AdmiraltyToShip {
     },
 }
 
-
-
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CartographerToAdmiralty {
     Pause,
     Resume,
@@ -54,7 +54,7 @@ pub enum CartographerToAdmiralty {
     Dump,
 }
 
-
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AdmiraltyToCartographer {
     State {
         round: Round,
