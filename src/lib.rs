@@ -11,3 +11,4 @@ pub use geometry;
 pub use messages;
 pub use shared;
 pub use wind;
+pub use views;

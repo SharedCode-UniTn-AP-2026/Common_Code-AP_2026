@@ -23,6 +23,7 @@ body:
               - Clues
               - Conformance
               - Messages 
+              - Views 
           default: 0
       validations:
           required: true

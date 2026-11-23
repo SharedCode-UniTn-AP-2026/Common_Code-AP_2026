@@ -18,3 +18,7 @@
 'messages':
   - changed-files:
       - any-glob-to-any-file: 'messages/**/*'
+
+'views':
+  - changed-files:
+      - any-glob-to-any-file: 'views/**/*'

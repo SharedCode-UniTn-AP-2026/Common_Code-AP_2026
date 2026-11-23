@@ -11,6 +11,7 @@ wind = { package = "ap-2026-common-code-wind", path = "src/wind" }
 clues = { package = "ap-2026-common-code-clues", path = "src/clues" }
 conformance = { package = "ap-2026-common-code-conformance", path = "src/conformance" }
 messages = { package = "ap-2026-common-code-messages", path = "src/messages" }
+views = { package = "ap-2026-common-code-views", path = "src/views" }
 
 [workspace]
 members = [
@@ -24,3 +25,9 @@ members = [
 
 [workspace.dependencies]
 shared = { package = "ap-2026-common-code-shared", path = "src/shared", version = "0.1.0" }
+geometry = { package = "ap-2026-common-code-geometry", path = "src/geometry" }
+wind = { package = "ap-2026-common-code-wind", path = "src/wind" }
+clues = { package = "ap-2026-common-code-clues", path = "src/clues" }
+conformance = { package = "ap-2026-common-code-conformance", path = "src/conformance" }
+messages = { package = "ap-2026-common-code-messages", path = "src/messages" }
+views = { package = "ap-2026-common-code-views", path = "src/views" }
