@@ -1,4 +1,4 @@
-use crate::types::{events::Event, letters::*};
+use crate::messages::info_types::{events::Event, letters::*};
 use shared::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

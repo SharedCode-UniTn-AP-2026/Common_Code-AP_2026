@@ -3,9 +3,9 @@
 #![deny(clippy::pedantic)]
 #![deny(missing_docs)]
 
+pub mod api;
 pub mod channels;
-pub mod message_types;
-pub mod types;
+pub mod messages;
 
 // TODO:
 // - Docum
@@ -24,7 +24,7 @@ pub mod types;
 // - Map is not dyn compatible, options:
 //      - Use generics (ugly)
 //      - Make Map object safe (dyn-compatible)
-// 
+//
 // PROTOCOL REFLECT:
 // - SunkReason was added because a ship has to know who shot it even if it dies
 // - Rejected was put in RoundResult to avoid conflicts between the different TurnMode and it makes more sense generally

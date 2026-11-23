@@ -1,4 +1,4 @@
-use crate::types::{
+use crate::messages::info_types::{
     actions::*, end_reason::EndReason, events::Event, letters::*, outcome::Outcome, rejections::Rejection,
 };
 use geometry::Map;

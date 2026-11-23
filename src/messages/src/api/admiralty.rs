@@ -1,17 +1,19 @@
 //! This module contains helper functions to help manage messages and channels
 
-pub mod channel_types;
 pub mod traits;
+pub mod types;
 
-use crate::message_types::{cartographer_messages::*, ship_messages::*};
-use channel_types::*;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, TryRecvError, TrySendError, bounded};
 use shared::ShipId;
 use std::{collections::HashMap, time::Duration};
 use traits::*;
+use types::*;
+
+use crate::channels::{traits::*, types::*};
+use crate::messages::message_types::{cartographer_messages::*, ship_messages::*};
 
 /// Struct implemented by the Admiralty to organize communication and channels for every Ship and the cartographer.
-pub struct ChannelOrganizer {
+pub struct AdmiraltyChannelManager {
     /// A HashMap that maps a ShipId to its respective channels that allow the Admiralty to communicate with that Ship.
     ship_channels: HashMap<ShipId, AdmiraltyToShipChannel>,
 
@@ -25,7 +27,7 @@ pub struct ChannelOrganizer {
     channel_capacity: usize,
 }
 
-impl ChannelOrganizer {
+impl AdmiraltyChannelManager {
     /// Creates a new ChannelOrganizer with the specified response deadline and channel capacity and creates the channels to the cartographer.
     ///
     /// **Returns a tuple (ChannelOrganizer, Sender<CartographerToAdmiralty>, Receiver<AdmiraltyToCartographer>)**
@@ -131,7 +133,7 @@ impl ChannelOrganizer {
     }
 }
 
-impl ShipMessageManager for ChannelOrganizer {
+impl ShipMessageManager for AdmiraltyChannelManager {
     fn ship_broadcast(&mut self, message: AdmiraltyToShip) {
         let mut disconneted_ships: Vec<ShipId> = vec![];
         for (id, channel) in &self.ship_channels {
@@ -212,7 +214,7 @@ impl ShipMessageManager for ChannelOrganizer {
     }
 }
 
-impl CartographerMessageManager for ChannelOrganizer {
+impl CartographerMessageManager for AdmiraltyChannelManager {
     fn cartographer_send(&self, message: AdmiraltyToCartographer) {
         match self.cartographer_channels.outbox().try_send(message) {
             Ok(_) => {}
