@@ -9,3 +9,6 @@ path = "src/lib.rs"
 [dependencies]
 shared.workspace = true
 thiserror = "2.0.21"
+
+[dev-dependencies]
+proptest = "1.12.0"
