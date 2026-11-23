@@ -22,3 +22,7 @@
 'views':
   - changed-files:
       - any-glob-to-any-file: 'views/**/*'
+
+'shiptrait':
+  - changed-files:
+      - any-glob-to-any-file: 'shiptrait/**/*'

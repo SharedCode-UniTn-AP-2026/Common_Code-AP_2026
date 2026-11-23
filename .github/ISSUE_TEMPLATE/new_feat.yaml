@@ -24,6 +24,7 @@ body:
               - Conformance
               - Messages 
               - Views 
+              - ShipTrait
           default: 0
       validations:
           required: true

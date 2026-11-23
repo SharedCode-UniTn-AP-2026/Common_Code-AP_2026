@@ -11,6 +11,7 @@ dependencies = [
  "ap-2026-common-code-geometry",
  "ap-2026-common-code-messages",
  "ap-2026-common-code-shared",
+ "ap-2026-common-code-shiptrait",
  "ap-2026-common-code-views",
  "ap-2026-common-code-wind",
 ]
@@ -40,6 +41,10 @@ version = "0.1.0"
 
 [[package]]
 name = "ap-2026-common-code-shared"
+version = "0.1.0"
+
+[[package]]
+name = "ap-2026-common-code-shiptrait"
 version = "0.1.0"
 
 [[package]]

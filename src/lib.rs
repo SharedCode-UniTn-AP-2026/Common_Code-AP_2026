@@ -10,5 +10,6 @@ pub use conformance;
 pub use geometry;
 pub use messages;
 pub use shared;
+pub use shiptrait;
 pub use views;
 pub use wind;

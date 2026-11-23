@@ -12,6 +12,7 @@ clues = { package = "ap-2026-common-code-clues", path = "src/clues" }
 conformance = { package = "ap-2026-common-code-conformance", path = "src/conformance" }
 messages = { package = "ap-2026-common-code-messages", path = "src/messages" }
 views = { package = "ap-2026-common-code-views", path = "src/views" }
+shiptrait = { package = "ap-2026-common-code-shiptrait", path = "src/shiptrait" }
 
 [workspace]
 members = [
@@ -20,7 +21,9 @@ members = [
     "src/wind",
     "src/clues",
     "src/conformance",
-    "src/messages"
+    "src/messages",
+    "src/views",
+    "src/shiptrait",
 ]
 
 [workspace.dependencies]
@@ -31,3 +34,4 @@ clues = { package = "ap-2026-common-code-clues", path = "src/clues" }
 conformance = { package = "ap-2026-common-code-conformance", path = "src/conformance" }
 messages = { package = "ap-2026-common-code-messages", path = "src/messages" }
 views = { package = "ap-2026-common-code-views", path = "src/views" }
+shiptrait = { package = "ap-2026-common-code-shiptrait", path = "src/shiptrait" }
