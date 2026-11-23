@@ -61,7 +61,14 @@ impl Display for Bound {
 }
 
 impl Bound {
-    // if the overflow was to happen -> saturate i32
+    /// Relax this bound by the specified amount, making it less restrictive.
+    ///
+    /// - [`Bound::AtLeast`]: decreases the minimum coordinate value by `amount`,
+    ///   saturating at `i32::MIN = 0`.
+    /// - [`Bound::AtMost`]: increases the maximum coordinate value by `amount`,
+    ///   saturating at `i32::MAX`.
+    ///
+    /// If `amount` exceeds `i32::MAX`, it is treated as `i32::MAX`.
     fn relax(self, amount: u32) -> Bound {
         let a = i32::try_from(amount).unwrap_or(i32::MAX);
         match self {
@@ -72,7 +79,13 @@ impl Bound {
 }
 
 impl Clue {
-    // True when this clue is consistent with the treasure lying in ‘cell‘.
+    /// Return whether this clue is consistent with the treasure being in `cell`.
+    ///
+    /// A clue holds if the cell satisfies the condition represented by the clue:
+    /// - [`Clue::Within`]: the cell is at most `radius` distance from `centre`.
+    /// - [`Clue::Beyond`]: the cell is more than `radius` distance from `centre`.
+    /// - [`Clue::HalfPlane`]: the cell's coordinate along `axis` satisfies `bound`.
+    /// - [`Clue::Nearer`]: the cell is strictly closer to `a` than to `b`.
     #[must_use]
     pub fn holds(self, cell: Cell) -> bool {
         match self {
@@ -93,7 +106,22 @@ impl Clue {
         }
     }
 
+    /// Weaken this clue by the specified number of times, making it less restrictive.
+    ///
+    /// The weakening operation depends on the clue type:
+    /// - [`Clue::Within`]: increases the radius by `times`, saturating at `u32::MAX`.
+    /// - [`Clue::Beyond`]: decreases the radius by `times`, saturating at `0`.
+    /// - [`Clue::HalfPlane`]: relaxes the coordinate bound by `times`.
+    /// - [`Clue::Nearer`]: moves `b` farther from `a` along the direction from `a` to `b`,
+    ///   multiplying their coordinate difference by `times`.
+    ///
+    /// For [`Clue::Nearer`], if `times` is less than `2` or `a == b`, the original
+    /// clue is returned unchanged.
+    ///
     /// # Errors
+    ///
+    /// Returns an error if weakening a [`Clue::Nearer`] produces a new cell whose
+    /// coordinates overflow `i32` or which is outside `map`.
     pub fn weaken(self, map: &impl Map, times: u32) -> Result<Clue, String> {
         match self {
             Clue::Within { centre, radius } => Ok(Clue::Within {
@@ -102,7 +130,7 @@ impl Clue {
             }),
             Clue::Beyond { centre, radius } => Ok(Clue::Beyond {
                 centre,
-                radius: radius.saturating_sub(times), // sets the radius to u32::MIN if underflowed
+                radius: radius.saturating_sub(times), // sets the radius to u32::MIN = 0 if underflowed
             }),
             Clue::HalfPlane { axis, bound } => Ok(Clue::HalfPlane {
                 axis,
@@ -143,6 +171,7 @@ impl Clue {
             }
         }
     }
+
     // returns true if self is weaker than other
     // if self is atleast as strong as other -> returns false
     // returns Err if the two clues are of different types
