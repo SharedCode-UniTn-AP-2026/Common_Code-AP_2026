@@ -29,3 +29,4 @@ pub mod types;
 // - SunkReason was added because a ship has to know who shot it even if it dies
 // - Rejected was put in RoundResult to avoid conflicts between the different TurnMode and it makes more sense generally
 // - Added a Relayed letter to solve #34
+// - Deadlines for the cartographer
