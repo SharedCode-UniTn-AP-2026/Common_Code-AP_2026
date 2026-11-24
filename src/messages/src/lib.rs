@@ -30,3 +30,4 @@ pub mod messages;
 // - Rejected was put in RoundResult to avoid conflicts between the different TurnMode and it makes more sense generally
 // - Added a Relayed letter to solve #34
 // - Deadlines for the cartographer
+// Added rejects TooManyClues and TooManyChars
