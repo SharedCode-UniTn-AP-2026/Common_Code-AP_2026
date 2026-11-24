@@ -1,6 +1,20 @@
 use crate::{api::admiralty::types::CommsOutcome, messages::message_types::{cartographer_messages::*, ship_messages::*}};
 use shared::ShipId;
 
+pub struct AdmiraltyChannelManager {
+    /// A HashMap that maps a ShipId to its respective channels that allow the Admiralty to communicate with that Ship.
+    ship_channels: HashMap<ShipId, AdmiraltyToShipChannel>,
+
+    /// A channel that allows the Admiralty to communicate with the Cartographer.
+    cartographer_channels: AdmiraltyToCartographerChannel,
+
+    /// Maximum time (_milliseconds_) allowed for a ship to respond to a message from the Admiralty.
+    response_deadline: u64,
+
+    /// Maximum capacity of the channels used for communication between the Admiralty and the Ships or the Cartographer.
+    channel_capacity: usize,
+}
+
 /// Trait that defines helper functions for entities that have to manage messages from/to the Ships.
 #[allow(unused)]
 pub trait ShipMessageManager {
@@ -22,3 +36,4 @@ pub trait CartographerMessageManager {
     /// Receives a message from the cartographer.
     fn cartographer_receive(&self) -> CommsOutcome<CartographerToAdmiralty>;
 }
+

@@ -1,2 +1,3 @@
-pub mod traits;
-pub mod types;
+mod channel_types;
+
+pub use channel_types::*;

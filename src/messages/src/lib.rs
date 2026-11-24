@@ -4,8 +4,8 @@
 #![deny(missing_docs)]
 
 pub mod api;
-pub mod channels;
-pub mod messages;
+mod channels;
+mod messages;
 
 // TODO:
 // - Docum
@@ -31,3 +31,8 @@ pub mod messages;
 // - Added a Relayed letter to solve #34
 // - Deadlines for the cartographer
 // Added rejects TooManyClues and TooManyChars
+//
+//
+// COMMOND RECEIVE API
+// --> SMISTA MSG
+// --> RETURN ...TO...
