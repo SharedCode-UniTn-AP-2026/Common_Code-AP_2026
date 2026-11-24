@@ -1,4 +1,4 @@
-use crossbeam_channel::{Receiver, RecvError, SendError, Sender};
+use crossbeam_channel::{Receiver, Sender};
 
 pub trait Ship {
     fn new(rx: Receiver<AdmiraltyToShip>, tx: Sender<ShipToAdmiralty>) -> Self;
