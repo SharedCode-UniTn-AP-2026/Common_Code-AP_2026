@@ -9,3 +9,4 @@ path = "src/lib.rs"
 [dependencies]
 shared.workspace = true
 geometry = { package = "ap-2026-common-code-geometry", path = "../geometry" }
+thiserror = "2.0.21"
