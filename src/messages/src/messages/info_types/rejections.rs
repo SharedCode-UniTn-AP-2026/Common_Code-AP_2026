@@ -22,4 +22,6 @@ pub enum Rejection {
     NotAllied,
     TargetHasSunk,
     TooMuchMail,
+    TooManyClues,
+    TooManyChars,
 }
