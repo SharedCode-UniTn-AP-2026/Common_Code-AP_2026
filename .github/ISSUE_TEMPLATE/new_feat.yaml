@@ -26,6 +26,7 @@ body:
               - Views 
               - ShipTrait
               - IslandTrait 
+              - Logging
           default: 0
       validations:
           required: true

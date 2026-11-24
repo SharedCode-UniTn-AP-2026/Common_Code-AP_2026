@@ -14,6 +14,7 @@ messages = { package = "ap-2026-common-code-messages", path = "src/messages" }
 views = { package = "ap-2026-common-code-views", path = "src/views" }
 shiptrait = { package = "ap-2026-common-code-shiptrait", path = "src/shiptrait" }
 islandtrait = { package = "ap-2026-common-code-islandtrait", path = "src/islandtrait" }
+logging = { package = "ap-2026-common-code-logging", path = "src/logging" }
 
 [workspace]
 members = [
@@ -26,6 +27,7 @@ members = [
     "src/views",
     "src/shiptrait",
     "src/islandtrait",
+    "src/logging",
 ]
 
 [workspace.dependencies]
@@ -38,3 +40,4 @@ messages = { package = "ap-2026-common-code-messages", path = "src/messages" }
 views = { package = "ap-2026-common-code-views", path = "src/views" }
 shiptrait = { package = "ap-2026-common-code-shiptrait", path = "src/shiptrait" }
 islandtrait = { package = "ap-2026-common-code-islandtrait", path = "src/islandtrait" }
+logging = { package = "ap-2026-common-code-logging", path = "src/logging" }

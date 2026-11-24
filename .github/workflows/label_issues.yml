@@ -34,7 +34,7 @@ jobs:
                       const match = body.match(/###\s*feature\s*\n+([^\n\r]+)/i);
 
                       if (match && match[1]) {
-                          const supportedFeatures = ['geometry', 'wind', 'clues', 'conformance', 'messages', 'views', 'shiptrait', 'islandtrait']; //CHANGE
+                          const supportedFeatures = ['geometry', 'wind', 'clues', 'conformance', 'messages', 'views', 'shiptrait', 'islandtrait','logging']; //CHANGE
 
                           const selectedFeature = match?.[1]?.trim().toLowerCase();
 
@@ -75,7 +75,8 @@ jobs:
                         'messages': { teamSlug: 'unwrap_and_pray', members: ['Captniz', 'samuelbravi11', 'Mattiaexe', 'ReBIviBDas'] },
                         'views': { teamSlug: 'Rhaast', members: ['SpidyAmI', 'TizioGrigio0', 'fazio6038', 'Fr4nk40016'] },
                         'shiptrait': { teamSlug: 'Clion', members: ['dragosbaiu', 'filippo-nassini', 'tridoz', 'd-campidelli'] },
-                        'islandtrait': { teamSlug: 'whole_lotta_panic', members: ['marbus29', 'venesian', 'AleRoncato', 'erni'] }
+                        'islandtrait': { teamSlug: 'whole_lotta_panic', members: ['marbus29', 'venesian', 'AleRoncato', 'erni'] },
+                        'logging': : { teamSlug: 'Larpers', members: ['antoniocariaa', 'alifaizan', 'federicopedron05', 'andreaNardin2005'] }
                       };
 
                       // Fetch the latest issue details to get fresh labels

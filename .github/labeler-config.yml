@@ -30,3 +30,7 @@
 'islandtrait':
   - changed-files:
       - any-glob-to-any-file: 'islandtrait/**/*'
+
+'logging':
+  - changed-files:
+      - any-glob-to-any-file: 'logging/**/*'
