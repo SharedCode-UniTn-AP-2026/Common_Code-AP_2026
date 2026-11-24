@@ -87,6 +87,7 @@ impl AdmiraltyChannelManager {
 
     /// Generates the channels for each ship.
     ///
+    /// # Returns
     /// Returns two hashmaps in a tuple :
     /// 1. Contains the channels used by the Admiralty to talk to each ship.
     /// 2. Contains the channels used by each ship to talk to the Admiralty.
@@ -134,6 +135,9 @@ impl AdmiraltyChannelManager {
 }
 
 impl ShipMessageManager for AdmiraltyChannelManager {
+    /// Sends a message to every ship.
+    ///
+    /// If a ship results "disconnected" it gets removed from the HashMap of memorized (ShipId, AdmiraltyToShipChannel).
     fn ship_broadcast(&mut self, message: AdmiraltyToShip) {
         let mut disconneted_ships: Vec<ShipId> = vec![];
         for (id, channel) in &self.ship_channels {
@@ -157,16 +161,26 @@ impl ShipMessageManager for AdmiraltyChannelManager {
         }
     }
 
-    fn ship_send(&mut self, ship_id: ShipId, message: AdmiraltyToShip) {
+    /// Sends a message to a ship.
+    ///
+    /// If a ship results "disconnected" it gets removed from the HashMap of memorized (ShipId, AdmiraltyToShipChannel).
+    ///
+    /// # Returns
+    /// - `CommsOutcome::Success(Some(None))` : Message sent
+    /// - `CommsOutcome::Full` : Message could not be sent because the channel is full
+    /// - `CommsOutcome::NonExistent` : Message could not be sent because either the ShipId has never existed or the corresponding ship has been disconnected
+    fn ship_send(&mut self, ship_id: ShipId, message: AdmiraltyToShip) -> CommsOutcome<AdmiraltyToShip> {
         if let Some(channel) = self.ship_channels.get(&ship_id) {
             match channel.outbox().try_send(message) {
-                Ok(_) => {}
+                Ok(_) => CommsOutcome::Success(None),
                 Err(TrySendError::Full(_)) => {
                     println!("Channel to ship {:?} is full. Message dropped.", ship_id);
+                    CommsOutcome::Full
                 }
                 Err(TrySendError::Disconnected(_)) => {
                     println!("Channel to ship {:?} is disconnected.", ship_id);
                     self.ship_channels.remove(&ship_id);
+                    CommsOutcome::NonExistent
                 }
             }
         } else {
@@ -174,31 +188,39 @@ impl ShipMessageManager for AdmiraltyChannelManager {
                 "Tried to send message to ship with the non-existing id : {:?}. ",
                 ship_id
             );
-            self.ship_channels.remove(&ship_id);
+            CommsOutcome::NonExistent
         }
     }
 
-    fn ship_receive(&mut self, ship_id: ShipId) -> Option<ShipToAdmiralty> {
+    /// Recieves a message from a ship.
+    ///
+    /// If a ship results "disconnected" it gets removed from the HashMap of memorized (ShipId, AdmiraltyToShipChannel).
+    ///
+    /// # Returns
+    /// - `CommsOutcome::Success(Some(message))` : Message recieved
+    /// - `CommsOutcome::Timeout` : Message could not be recieved because the deadline has passed
+    /// - `CommsOutcome::NonExistent` : Message could not be recieved because either the ShipId has never existed or the corresponding ship has been disconnected
+    fn ship_receive(&mut self, ship_id: ShipId) -> CommsOutcome<ShipToAdmiralty> {
         if let Some(channel) = self.ship_channels.get(&ship_id) {
             let inbox = channel.inbox();
             match inbox.try_recv() {
-                Ok(message) => Some(message),
+                Ok(message) => CommsOutcome::Success(Some(message)),
                 Err(TryRecvError::Disconnected) => {
                     println!("Channel from ship {:?} is disconnected. ", ship_id);
 
                     self.ship_channels.remove(&ship_id);
-                    None
+                    CommsOutcome::NonExistent
                 }
                 Err(TryRecvError::Empty) => match inbox.recv_timeout(Duration::from_millis(self.response_deadline)) {
-                    Ok(msg) => Some(msg),
+                    Ok(message) => CommsOutcome::Success(Some(message)),
 
-                    Err(RecvTimeoutError::Timeout) => None,
+                    Err(RecvTimeoutError::Timeout) => CommsOutcome::TimeOut,
 
                     Err(RecvTimeoutError::Disconnected) => {
                         println!("Channel from ship {:?} is disconnected. ", ship_id);
 
                         self.ship_channels.remove(&ship_id);
-                        None
+                        CommsOutcome::NonExistent
                     }
                 },
             }
@@ -207,19 +229,26 @@ impl ShipMessageManager for AdmiraltyChannelManager {
                 "Tried to receive message from ship with the non-existing id : {:?}. ",
                 ship_id
             );
-
-            self.ship_channels.remove(&ship_id);
-            None
+            CommsOutcome::NonExistent
         }
     }
 }
 
 impl CartographerMessageManager for AdmiraltyChannelManager {
-    fn cartographer_send(&self, message: AdmiraltyToCartographer) {
+    /// Sends a message to the cartographer.
+    ///
+    /// # Panics
+    /// - Will panic if the channel to the cartographer is disconnected.
+    ///
+    /// # Returns
+    /// - `CommsOutcome::Success(Some(None))` : Message sent
+    /// - `CommsOutcome::Full` : Message could not be sent because the channel is full
+    fn cartographer_send(&self, message: AdmiraltyToCartographer) -> CommsOutcome<AdmiraltyToCartographer> {
         match self.cartographer_channels.outbox().try_send(message) {
-            Ok(_) => {}
+            Ok(_) => CommsOutcome::Success(None),
             Err(TrySendError::Full(_)) => {
                 println!("Channel to cartographer is full. Message dropped.");
+                CommsOutcome::Full
             }
             Err(TrySendError::Disconnected(_)) => {
                 panic!("Channel to cartographer is disconnected. This should never happen.");
@@ -227,15 +256,24 @@ impl CartographerMessageManager for AdmiraltyChannelManager {
         }
     }
 
-    fn cartographer_receive(&self) -> Option<CartographerToAdmiralty> {
+    /// Receives a message from the cartographer.
+    /// Hangs until a message is received or 150ms have passed, after which it will **panic**.
+    ///
+    /// # Panics
+    /// - Will panic if the channel from the cartographer is disconnected.
+    /// - Will panic if 1s has passed without receiving a message from the cartographer.
+    ///
+    /// # Returns
+    /// - `CommsOutcome::Success(Some(message))` : Message recieved
+    fn cartographer_receive(&self) -> CommsOutcome<CartographerToAdmiralty> {
         let inbox = self.cartographer_channels.inbox();
         match inbox.try_recv() {
-            Ok(message) => Some(message),
+            Ok(message) => CommsOutcome::Success(Some(message)),
             Err(TryRecvError::Disconnected) => {
                 panic!("Channel from cartographer is disconnected. This should never happen.");
             }
             Err(TryRecvError::Empty) => match inbox.recv_timeout(Duration::from_secs(1)) {
-                Ok(msg) => Some(msg),
+                Ok(message) => CommsOutcome::Success(Some(message)),
                 Err(RecvTimeoutError::Timeout) => {
                     panic!("Message from cartographer was not received within 1s.");
                 }

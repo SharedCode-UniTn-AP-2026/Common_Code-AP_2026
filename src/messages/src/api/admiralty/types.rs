@@ -15,3 +15,10 @@ pub struct GeneratedChannels {
     /// Cartographer will use these channels to communicate with the Admiralty.
     pub cartographer: CartographerToAdmiraltyChannel,
 }
+
+pub enum CommsOutcome<T> {
+    NonExistent,
+    Full,
+    TimeOut,
+    Success(Option<T>),
+}
