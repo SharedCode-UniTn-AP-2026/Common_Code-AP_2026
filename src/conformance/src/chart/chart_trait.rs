@@ -63,7 +63,7 @@ pub trait Chart: Sized {
     /// Generate the archipelago, returns a [`GenError`] if some step fails
     fn generate(seed: Seed, params: &Params) -> Result<Self, GenError>;
 
-    /// Decide whether an action is legal. The only way to obtain a ValidatedAction.
+    /// Decide whether an action is legal. The only way to obtain a `ValidatedAction`.
     fn validate(&self, ship: ShipId, action: &Action) -> Result<Self::ValidatedAction, Rejection>;
 
     /// Apply an already validated action. Cannot fail.
@@ -72,7 +72,7 @@ pub trait Chart: Sized {
     /// End of round: the round number advances and the Islands take their turn.
     fn advance_round(&mut self) -> Vec<Report>;
 
-    /// What a Ship is permitted to see.
+    /// What a [`Ship`] is permitted to see.
     fn view_for(&self, ship: ShipId) -> Option<ShipView>;
 
     /// What a spectator sees: everything.

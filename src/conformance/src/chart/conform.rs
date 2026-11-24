@@ -20,8 +20,8 @@ pub fn deterministic_generation<C: Chart + PartialEq + Debug>() {
 
         dbg!((i, seed));
 
-        let gen_1 = C::generate(seed.clone(), &params);
-        let gen_2 = C::generate(seed.clone(), &params);
+        let gen_1 = C::generate(seed, &params);
+        let gen_2 = C::generate(seed, &params);
 
         assert_eq!(gen_1, gen_2);
     }

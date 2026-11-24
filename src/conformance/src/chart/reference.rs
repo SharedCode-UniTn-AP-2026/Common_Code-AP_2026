@@ -27,19 +27,11 @@ impl Map for RicMap {
     }
 
     fn contains(&self, cell: Cell) -> bool {
-        if let Some(_) = self.cells.get(&cell) {
-            true
-        } else {
-            false
-        }
+        self.cells.get(&cell).is_some()
     }
 
     fn terrain(&self, cell: Cell) -> Option<Terrain> {
-        if let Some(terr) = self.cells.get(&cell) {
-            Some(terr.clone())
-        } else {
-            None
-        }
+        self.cells.get(&cell).map(|terr| terr.clone())
     }
 
     fn is_land(&self, cell: Cell) -> bool {
@@ -80,6 +72,7 @@ impl Map for RicMap {
 
 impl RicMap {
     /// a
+    #[must_use]
     pub fn init(radius: u32, cells: BTreeMap<Cell, Terrain>) -> Self {
         Self { radius, cells }
     }
@@ -103,12 +96,12 @@ impl Chart for RefChart {
         Ok(Self {
             map,
             round: 0,
-            params: params.clone(),
+            params: *params,
             w_seed: rng.next_u64(),
         })
     }
 
-    /// Decide whether an action is legal. The only way to obtain a ValidatedAction.
+    /// Decide whether an action is legal. The only way to obtain a `ValidatedAction`.
     fn validate(&self, ship: ShipId, action: &Action) -> Result<Self::ValidatedAction, Rejection> {
         todo!()
     }
@@ -141,7 +134,7 @@ impl Chart for RefChart {
 
     /// Parameters passed at [`Chart::generate()`]
     fn params(&self) -> Params {
-        self.params.clone()
+        self.params
     }
 
     /// The [`Chart`] [`Map`]
@@ -161,10 +154,15 @@ impl Chart for RefChart {
 }
 
 impl RefChart {
-    /// Generate a BTreeMap of <Cell,Terrain> cells
+    /// Generate a `BTreeMap<Cell,Terrain>` cells
     fn cells_generate(radius: u32) -> BTreeMap<Cell, Terrain> {
-        let rad: i64 = radius as i64;
-        let neg_rad: i64 = -rad;
+        if radius > (i32::MAX / 2) as u32 {
+            // prevents overflow in start(), where operations like R - q can reach 2 * R
+            // return Err(Error::ErrRadius);
+        }
+
+        let rad: i32 = radius as i32; // i32::try_from(radius)?;
+        let neg_rad: i32 = -rad;
 
         let mut cells: BTreeMap<Cell, Terrain> = BTreeMap::new();
 
@@ -173,13 +171,7 @@ impl RefChart {
             let r_max = rad.min(rad.saturating_sub(q));
 
             for r in r_min..=r_max {
-                cells.insert(
-                    Cell {
-                        q: q as i32,
-                        r: r as i32,
-                    },
-                    Terrain::Clear,
-                );
+                cells.insert(Cell { q, r }, Terrain::Clear);
             }
         }
 
