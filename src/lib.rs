@@ -8,6 +8,7 @@
 pub use clues;
 pub use conformance;
 pub use geometry;
+pub use islandtrait;
 pub use messages;
 pub use shared;
 pub use shiptrait;

@@ -26,3 +26,7 @@
 'shiptrait':
   - changed-files:
       - any-glob-to-any-file: 'shiptrait/**/*'
+
+'islandtrait':
+  - changed-files:
+      - any-glob-to-any-file: 'shiptrait/**/*'

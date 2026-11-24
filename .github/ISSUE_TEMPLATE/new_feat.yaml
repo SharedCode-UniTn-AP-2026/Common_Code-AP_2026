@@ -25,6 +25,7 @@ body:
               - Messages 
               - Views 
               - ShipTrait
+              - IslandTrait 
           default: 0
       validations:
           required: true
