@@ -3,5 +3,4 @@
 #![deny(clippy::pedantic)]
 #![deny(missing_docs)]
 
-mod chart;
-mod rejection;
+pub mod chart;

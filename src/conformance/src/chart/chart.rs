@@ -1,4 +1,4 @@
-use crate::rejection::Rejection;
+use super::rejection::Rejection;
 use geometry::Cell;
 use shared::{IslandId, Params, Seed, ShipId};
 
