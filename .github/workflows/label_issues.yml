@@ -31,32 +31,55 @@ jobs:
                   script: |
                       const body = context.payload.issue.body || '';
 
-                      const match = body.match(/###\s*feature\s*\n+([^\n\r]+)/i);
+                      const supportedFeatures = [
+                        'geometry',
+                        'wind',
+                        'clues',
+                        'conformance',
+                        'messages',
+                        'views',
+                        'shiptrait',
+                        'islandtrait',
+                        'logging'
+                      ];
 
-                      if (match && match[1]) {
-                          const supportedFeatures = ['geometry', 'wind', 'clues', 'conformance', 'messages', 'views', 'shiptrait', 'islandtrait','logging']; //CHANGE
+                      const match = body.match(
+                        /^###[ \t]+feature[ \t]*\r?\n(?:[ \t]*\r?\n)*([^\r\n]+)/im
+                      );
 
-                          const selectedFeature = match?.[1]?.trim().toLowerCase();
-
-                          const labelToAdd = supportedFeatures.find(
-                            feature => selectedFeature?.includes(feature)
-                          );
-
-                          if (labelToAdd) {
-                            await github.rest.issues.addLabels({
-                              owner: context.repo.owner,
-                              repo: context.repo.repo,
-                              issue_number: context.issue.number,
-                              labels: [labelToAdd]
-                            });
-                          }
-                      } else {
-                        console.log("Could not find 'feature' dropdown field in issue body.");
+                      if (!match || !match[1]) {
+                        console.log("Could not find 'Feature' dropdown field in issue body.");
+                        return;
                       }
+
+                      const selectedFeature = match[1]
+                        .trim()
+                        .toLowerCase()
+                        .replace(/[\s_-]+/g, '');
+
+                      console.log(`Selected feature: ${selectedFeature}`);
+
+                      const labelToAdd = supportedFeatures.find(
+                        feature => feature === selectedFeature
+                      );
+
+                      if (!labelToAdd) {
+                        console.log(`Unsupported feature: ${selectedFeature}`);
+                        return;
+                      }
+
+                      await github.rest.issues.addLabels({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: context.issue.number,
+                        labels: [labelToAdd]
+                      });
+
+                      console.log(`Added label: ${labelToAdd}`);
 
     assign-issue-team:
         needs: [label-issue-from-form]
-        if: always() && github.event_name == 'issues'
+        if: always() && !cancelled() && github.event_name == 'issues'
         runs-on: ubuntu-latest
         permissions:
             issues: write
@@ -67,51 +90,157 @@ jobs:
                   script: |
                       const org = 'SharedCode-UniTn-AP-2026';
 
-                      const teamMapping = { //CHANGE
-                        'geometry': { teamSlug: 'Rusty_Krab', members: ['Eneo-org', 'alterax05', 'LauraPrandina', 'Iv25k5'] },
-                        'wind': { teamSlug: 'zev', members: ['Nikicoraz', 'FedeBrus', 'ManMls', 'bzraa'] },
-                        'clues': { teamSlug: 'unsafe', members: ['Mionuel', 'theRealWallice', 'ZenSan3', 'zThatIsCrazy'] },
-                        'conformance': { teamSlug: 'Rust_in_Case', members: ['btwLLeo', 'mattiacoll', 'ThOmAsM210', 'Toko-hw'] },
-                        'messages': { teamSlug: 'unwrap_and_pray', members: ['Captniz', 'samuelbravi11', 'Mattiaexe', 'ReBIviBDas'] },
-                        'views': { teamSlug: 'Rhaast', members: ['SpidyAmI', 'TizioGrigio0', 'fazio6038', 'Fr4nk40016'] },
-                        'shiptrait': { teamSlug: 'Clion', members: ['dragosbaiu', 'filippo-nassini', 'tridoz', 'd-campidelli'] },
-                        'islandtrait': { teamSlug: 'whole_lotta_panic', members: ['marbus29', 'venesian', 'AleRoncato', 'erni'] },
-                        'logging': : { teamSlug: 'Larpers', members: ['antoniocariaa', 'alifaizan', 'federicopedron05', 'andreaNardin2005'] }
+                      const teamMapping = {
+                        'geometry': {
+                          teamSlug: 'Rusty_Krab',
+                          members: ['Eneo-org', 'alterax05', 'LauraPrandina', 'Iv25k5']
+                        },
+                        'wind': {
+                          teamSlug: 'zev',
+                          members: ['Nikicoraz', 'FedeBrus', 'ManMls', 'bzraa']
+                        },
+                        'clues': {
+                          teamSlug: 'unsafe',
+                          members: ['Mionuel', 'theRealWallice', 'ZenSan3', 'zThatIsCrazy']
+                        },
+                        'conformance': {
+                          teamSlug: 'Rust_in_Case',
+                          members: ['btwLLeo', 'mattiacoll', 'ThOmAsM210', 'Toko-hw']
+                        },
+                        'messages': {
+                          teamSlug: 'unwrap_and_pray',
+                          members: ['Captniz', 'samuelbravi11', 'Mattiaexe', 'ReBIviBDas']
+                        },
+                        'views': {
+                          teamSlug: 'Rhaast',
+                          members: ['SpidyAmI', 'TizioGrigio0', 'fazio6038', 'Fr4nk40016']
+                        },
+                        'shiptrait': {
+                          teamSlug: 'Clion',
+                          members: ['dragosbaiu', 'filippo-nassini', 'tridoz', 'd-campidelli']
+                        },
+                        'islandtrait': {
+                          teamSlug: 'whole_lotta_panic',
+                          members: ['marbus29', 'venesian', 'AleRoncato', 'erni']
+                        },
+                        'logging': {
+                          teamSlug: 'Larpers',
+                          members: ['antoniocariaa', 'alifaizan', 'federicopedron05', 'andreaNardin2005']
+                        }
                       };
 
-                      // Fetch the latest issue details to get fresh labels
-                      const { data: issue } = await github.rest.issues.get({
+                      const issueParams = {
                         owner: context.repo.owner,
                         repo: context.repo.repo,
                         issue_number: context.issue.number
-                      });
+                      };
 
-                      const labelNames = issue.labels.map(l => l.name.toLowerCase());
-                      console.log(`Current labels on issue #${context.issue.number}:`, labelNames);
+                      // Fetch the latest issue details.
+                      const { data: issue } = await github.rest.issues.get(
+                        issueParams
+                      );
+
+                      const labelNames = issue.labels.map(
+                        label => label.name.toLowerCase()
+                      );
+
+                      console.log(
+                        `Current labels on issue #${context.issue.number}:`,
+                        labelNames
+                      );
+
+                      // Fetch existing comments to prevent duplicate mentions.
+                      const comments = await github.paginate(
+                        github.rest.issues.listComments,
+                        {
+                          ...issueParams,
+                          per_page: 100
+                        }
+                      );
 
                       for (const [label, teamConfig] of Object.entries(teamMapping)) {
-                        if (labelNames.includes(label)) {
-                          const { teamSlug, members } = teamConfig;
-                          const assignees = members.map(m => m.trim()).filter(Boolean);
 
-                          // Assign users to the issue
-                          if (assignees.length > 0) {
-                            await github.rest.issues.addAssignees({
-                              owner: context.repo.owner,
-                              repo: context.repo.repo,
-                              issue_number: context.issue.number,
-                              assignees: assignees
-                            });
-                            console.log(`Assigned users for label '${label}': ${assignees.join(', ')}`);
-                          }
-
-                          // Post team notification comment
-                          await github.rest.issues.createComment({
-                            owner: context.repo.owner,
-                            repo: context.repo.repo,
-                            issue_number: context.issue.number,
-                            body: `Hello @${org}/${teamSlug}, this issue has been automatically assigned to your team.`
-                          });
-                          console.log(`Posted team mention comment for @${org}/${teamSlug}`);
+                        if (!labelNames.includes(label)) {
+                          continue;
                         }
+
+                        console.log(`Matched feature label: ${label}`);
+
+                        const { teamSlug, members } = teamConfig;
+
+                        const assignees = members
+                          .map(member => member.trim())
+                          .filter(Boolean);
+
+                        let assignmentSuccessful = true;
+
+                        // Assign team members.
+                        if (assignees.length > 0) {
+                          try {
+                            const { data: updatedIssue } =
+                              await github.rest.issues.addAssignees({
+                                ...issueParams,
+                                assignees: assignees
+                              });
+
+                            const actualAssignees = updatedIssue.assignees.map(
+                              user => user.login.toLowerCase()
+                            );
+
+                            const missingAssignees = assignees.filter(
+                              user => !actualAssignees.includes(user.toLowerCase())
+                            );
+
+                            if (missingAssignees.length > 0) {
+                              assignmentSuccessful = false;
+
+                              core.warning(
+                                `Could not assign: ${missingAssignees.join(', ')}`
+                              );
+                            }
+
+                            console.log(
+                              `Current assignees: ${actualAssignees.join(', ')}`
+                            );
+
+                          } catch (error) {
+                            assignmentSuccessful = false;
+
+                            core.warning(
+                              `Assignment failed for '${label}': ${error.message}`
+                            );
+                          }
+                        }
+
+                        // Prevent duplicate team notification comments.
+                        const teamMention = `@${org}/${teamSlug}`;
+                        const marker = `<!-- auto-team-assignment:${label} -->`;
+
+                        const alreadyNotified = comments.some(
+                          comment =>
+                            comment.user?.login === 'github-actions[bot]' &&
+                            (
+                              comment.body?.includes(marker) ||
+                              comment.body?.includes(
+                                `Hello ${teamMention}, this issue has been automatically assigned to your team.`
+                              )
+                            )
+                        );
+
+                        if (alreadyNotified) {
+                          console.log(`Team ${teamSlug} has already been notified.`);
+                          continue;
+                        }
+
+                        const message = assignmentSuccessful
+                          ? `Hello ${teamMention}, this issue has been automatically assigned to your team.`
+                          : `Hello ${teamMention}, this issue is associated with your team. Some automatic assignments could not be completed.`;
+
+                        // Post team notification.
+                        await github.rest.issues.createComment({
+                          ...issueParams,
+                          body: `${message}\n\n${marker}`
+                        });
+
+                        console.log(`Posted team mention for ${teamMention}`);
                       }
