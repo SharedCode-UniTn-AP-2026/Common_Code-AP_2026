@@ -20,7 +20,7 @@ pub enum Outcome {
     Declared {
         /// The winning [`ShipId`]
         winner: ShipId,
-        /// THe treasure's [`Cell`]
+        /// The treasure's [`Cell`]
         treasure: Cell,
     },
     /// The round limit was reached without a correct declaration.
