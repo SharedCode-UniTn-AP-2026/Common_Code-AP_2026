@@ -22,6 +22,32 @@ pub enum ShipToAdmiralty {
     },
 }
 
+impl ShipToAdmiralty {
+    pub fn check_letter_validity(&self) -> Option<Rejection> {
+        match self {
+            ShipToAdmiralty::Submit {
+                token: _token,
+                round: _round,
+                action: _action,
+                outbox,
+            } => {
+                if outbox.len() > 3 {
+                    return Some(Rejection::TooMuchMail);
+                }
+                for letter in outbox {
+                    if letter.clues.len() > 4 {
+                        return Some(Rejection::TooManyClues);
+                    }
+                    if letter.text.len() > 256 {
+                        return Some(Rejection::TooManyChars);
+                    }
+                }
+                None
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AdmiraltyToShip {
     /// Initializes a Ship before the first round begins, this is always the first message received by a Ship.
