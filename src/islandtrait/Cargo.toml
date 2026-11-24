@@ -7,3 +7,5 @@ edition = "2024"
 path = "src/lib.rs"
 
 [dependencies]
+common_shared = { package = "ap-2026-common-code-shared", path = "../shared" }
+common_clues = { package = "ap-2026-common-code-clues", path = "../clues" }

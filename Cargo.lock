@@ -40,6 +40,10 @@ dependencies = [
 [[package]]
 name = "ap-2026-common-code-islandtrait"
 version = "0.1.0"
+dependencies = [
+ "ap-2026-common-code-clues",
+ "ap-2026-common-code-shared",
+]
 
 [[package]]
 name = "ap-2026-common-code-messages"
