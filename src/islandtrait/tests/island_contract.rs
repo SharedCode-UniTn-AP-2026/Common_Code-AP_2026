@@ -73,10 +73,7 @@ impl Island for MockIsland {
     }
 
     fn has_more_to_offer(&self, ship: ShipId) -> bool {
-        if self.served_full.contains(&ship) {
-            return false;
-        }
-        true
+        !self.served_full.contains(&ship)
     }
 
     fn round_advance(&mut self, _round: Round) {
