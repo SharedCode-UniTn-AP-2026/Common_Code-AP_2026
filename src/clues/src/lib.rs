@@ -226,14 +226,24 @@ impl Clue {
         }
     }
 
-    // returns true if self is weaker than other
-    // if self is atleast as strong as other -> returns false
-    // returns Err if the two clues are of different types
-    // useful for ships that will be trying to figure out if the clue they received is a weaker than
-    // a previous one
-    /// todo
+    /// Return whether self is strictly weaker than other, meaning every cell
+    /// that satisfies other also satisfies self, but not the other way around.
+    /// Equal clues are not weaker than each other, so the result is false.
+    /// Mainly intended fro the ships that want to understand if a clue received from an Island is better than the
+    /// last one issued by the same Island
+    ///
+    /// Two clues are comparable when they have the same kind and the same 'base':
+    /// - [`Clue::Within`]: same centre, the larger radius is weaker.
+    /// - [`Clue::Beyond`]: same centre, the smaller radius is weaker.
+    /// - [`Clue::HalfPlane`]: same axis and bound kind, a lower `AtLeast`
+    ///   or a higher `AtMost` is weaker.
+    /// - [`Clue::Nearer`]: same a, the clue whose b is further from a is weaker.
+    ///
     /// # Errors
     ///
+    /// Returns an error if the clues are of different kinds, or if they are of the
+    /// same kind but have different centre`s (or `a cells), different axis
+    /// values, or different bound kinds.
     pub fn is_weaker_than(self, other: Clue) -> Result<bool, String> {
         match (self, other) {
             //Two within clues
