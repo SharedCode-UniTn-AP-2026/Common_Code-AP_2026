@@ -6,7 +6,7 @@ use std::fmt::Debug;
 ///
 #[non_exhaustive]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-#[deprecated(note = "Wait for https://github.com/SharedCode-UniTn-AP-2026/Common_Code-AP_2026/pull/64 to be merged")]
+#[deprecated(note = "Wait for `Action` to be merged")]
 pub enum Action {
     ///
     Move {
@@ -55,7 +55,7 @@ pub struct ShipView {}
 )]
 pub struct SpectatorView {}
 
-/// Trait for `Chart`
+/// Trait for [`Chart`]
 pub trait Chart: Sized {
     /// A Validated action
     type ValidatedAction: Debug;

@@ -6,6 +6,11 @@ use std::fmt::Debug;
 /// Deterministic generation, given a [`Seed`], [`Chart::generate`] should generate (or fail) the same way always.
 /// By default it runs 5 times with different seeds
 ///
+/// # Panics
+///
+/// Panics if the generation is not deterministic.
+/// Eg. given the same seed two different archipelagos are created or different errors are produced
+///
 /// # Examples
 /// ```
 /// # use ap_2026_common_code_conformance::chart::{deterministic_generation, RefChart};
