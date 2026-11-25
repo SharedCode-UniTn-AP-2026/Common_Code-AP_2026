@@ -1,4 +1,5 @@
-use super::{Chart, RefChart};
+use super::Chart;
+use geometry::Cell;
 use rand::RngExt;
 use shared::Params;
 use std::fmt::Debug;
@@ -21,7 +22,9 @@ pub fn deterministic_generation<C: Chart + PartialEq + Debug>() {
         let mut rng = rand::rng();
 
         let seed: u64 = rng.random();
-        let params = Params::default();
+        let mut params = Params::default();
+
+        params = params.with_cliff_count(1);
 
         dbg!((i, seed));
 
@@ -31,3 +34,43 @@ pub fn deterministic_generation<C: Chart + PartialEq + Debug>() {
         assert_eq!(gen_1, gen_2);
     }
 }
+
+/* pub fn placed_n_rocks<C: Chart + PartialEq + Debug>() {
+    let cent = Cell { q: 0, r: 0 };
+    let mut params = Params::default();
+
+    params.with_cliff_count(1);
+
+    let seed: u64 = rng.random();
+    let ap = C::generate(seed, &params);
+
+    assert!(C);
+    let map = C::map(&self);
+
+    let cliff_c = cent.disc(params.archipelago_radius).fold(0, |acc, c| {
+        if let Some(t) = map.terrain(c) {
+            match t {
+                Terrain::Cliff => acc + 1,
+                _ => acc + 0,
+            }
+        } else {
+            acc + 0
+        }
+    });
+
+    let rock_c = cent.disc(params.archipelago_radius).fold(0, |acc, c| {
+        if let Some(t) = map.terrain(c) {
+            match t {
+                Terrain::Rock => acc + 1,
+                _ => acc + 0,
+            }
+        } else {
+            acc + 0
+        }
+    });
+
+    println!(
+        "c: {}, r: {}, pc: {}, pr: {}",
+        cliff_c, rock_c, params.cliff_count, params.rock_count
+    );
+} */
