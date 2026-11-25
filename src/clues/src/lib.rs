@@ -1,8 +1,14 @@
-//! Clues that help the ship find the treasure.
+//! This crate defines the Clue that help the ship locate the treasure.
+//! As per the protocol, a Clue is a predicate applied to cells. Geometrically a [`Clue`] describes a region of the map.
+//! The ships must combine the different types of clues that they posses, intersect them and filter
+//! out the faulty ones, in order to narrow down the possible location of the treasure.
+//! The possible sources of a Clue are:
+//! - an Island that may issue the same clue variant at different strength.
+//! - a Ship that forged the clue to confuse ther others.
 //!
-//! A [`Clue`] describes a region of the map.
-//! - [`Clue::holds`] tests whether cell belongs to that region.
-//! - [`Clue::weaken`] makes a clue less precise.
+//! This crate provides the following methods that all operate on the clues:
+//! - [`Clue::holds`] tests whether a cell belongs to the map region produced by a Clue.
+//! - [`Clue::weaken`] makes a clue less precise by producing a "weaker" version of it.
 //! - [`Clue::is_weaker_than`] compares two clues of the same kind.
 
 // TODO: logs
@@ -22,7 +28,7 @@ use geometry::Cell;
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Clue {
     /// The treasure is no further than `radius` from `centre` (inclusive).
-    /// Produce a disc, while excluding a ring. Everything within
+    /// Produces a disc, while excluding a ring. Everything within the disc satisfies this variant.
     Within {
         /// Centre of the region.
         centre: Cell,
@@ -30,7 +36,7 @@ pub enum Clue {
         radius: u32,
     },
     /// The treasure is further than `radius` from `centre` (strictly).
-    /// Excludes a disc from the map, producing a ring. Everything beyond the excluded disc satisfies this vairant.
+    /// Excludes a disc from the map, producing a ring. Everything beyond the excluded disc satisfies this variant.
     Beyond {
         /// Centre of the excluded region.
         centre: Cell,
@@ -38,7 +44,7 @@ pub enum Clue {
         radius: u32,
     },
     /// The treasure's coordinate on `axis` satisfies `bound`.
-    /// Produces a half-plane that splits the map with a straight line  
+    /// Produces a half-plane that splits the map with a straight line on one of the axes.
     HalfPlane {
         /// Coordinate the bound applies to.
         axis: Axis,
@@ -46,8 +52,8 @@ pub enum Clue {
         bound: Bound,
     },
     /// The treasure is strictly closer to `a` than to `b`.
-    /// Interestingly enough this also produces a half-plane, by separating the map with a perpendicular
-    /// bisector between `a` and `b`.
+    /// Interestingly enough, this also produces a half-plane, by separating the map with a perpendicular
+    /// bisector defined on the line between `a` and `b`.
     Nearer {
         /// The cell the treasure is closer to.
         a: Cell,
@@ -55,7 +61,7 @@ pub enum Clue {
         b: Cell,
     },
 }
-/// One of the three cube coordinates of a hexagonal cell.
+/// One of the three coordinates of a hexagonal cell.
 /// Used only by [`Clue::HalfPlane`].
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Axis {
@@ -179,7 +185,8 @@ impl Clue {
     /// Returns an error if weakening a [`Clue::Nearer`] produces a new cell whose
     /// coordinates overflow `i32` or which is outside `map`.
     /// The string inside the error does not matter, as the solution is always the same - reduce the
-    /// `times` param.
+    /// `times` param. Meaning that an island should not match on the strings, instead it should
+    /// match on result and reduces the `times` parameter in the `Err` arm.
     pub fn weaken(self, map_radius: u32, times: u32) -> Result<Clue, String> {
         match self {
             Clue::Within { centre, radius } => Ok(Clue::Within {
