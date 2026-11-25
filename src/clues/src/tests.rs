@@ -3,8 +3,7 @@
 use std::collections::HashSet;
 
 use super::*; // brings everything from clues to tests
-use geometry;
-use geometry::{DefaultMap, Terrain};
+use geometry::{DefaultMap, Map, Terrain};
 
 // a small helper to create cells inline
 fn cell(q: i32, r: i32) -> Cell {

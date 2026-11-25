@@ -1,35 +1,73 @@
+//! Clues that help the ship find the treasure
+//!
+//! A [`Clue`] describes a region of the map. [`Clue::holds`] tests whether a
+//! cell belongs to that region, [`Clue::weaken`] makes a clue less precise,
+//! and [`Clue::is_weaker_than`] compares two clues of the same kind.
+
+// TODO: logs
+
 #![deny(unsafe_code)]
 #![deny(clippy::pedantic)]
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 
 use std::fmt::Display;
 
 use crate::Bound::{AtLeast, AtMost};
 
-use geometry::{Cell, Map};
+use geometry::Cell;
 
-// TODO: logs
-
+/// A hint about the treasure's location, expressed as a region of the map.
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Clue {
-    // No further than ‘radius‘ from ‘centre‘.
-    Within { centre: Cell, radius: u32 },
-    // Further than ‘radius‘ from ‘centre‘.
-    Beyond { centre: Cell, radius: u32 },
-    // The coordinate on ‘axis‘ satisfies ‘bound‘.
-    // The clue is atleast or atmost n on that axis
-    HalfPlane { axis: Axis, bound: Bound },
-    // Strictly closer to ‘a‘ than to ‘b‘.
-    Nearer { a: Cell, b: Cell },
+    /// The treasure is no further than `radius` from `centre` (inclusive).
+    /// Produce a disc, while excluding a ring. Everything within
+    Within {
+        /// Centre of the region.
+        centre: Cell,
+        /// Largest distance from `centre` that still satisfies the clue.
+        radius: u32,
+    },
+    /// The treasure is further than `radius` from `centre` (strictly).
+    /// Excludes a disc from the map, producing a ring. Everything beyond the excluded disc satisfies this vairant.
+    Beyond {
+        /// Centre of the excluded region.
+        centre: Cell,
+        /// Largest distance from `centre` that does *not* satisfy the clue.
+        radius: u32,
+    },
+    /// The treasure's coordinate on `axis` satisfies `bound`.
+    /// Produces a half-plane that splits the map with a straight line  
+    HalfPlane {
+        /// Coordinate the bound applies to.
+        axis: Axis,
+        /// Inclusive lower or upper limit on that coordinate.
+        bound: Bound,
+    },
+    /// The treasure is strictly closer to `a` than to `b`.
+    /// Interestingly enough this also produces a half-plane, by separating the map with a perpendicular
+    /// bisector between `a` and `b`.
+    Nearer {
+        /// The cell the treasure is closer to.
+        a: Cell,
+        /// The cell the treasure is further from.
+        b: Cell,
+    },
 }
+/// One of the three cube coordinates of a hexagonal cell.
+/// Used only by [`Clue::HalfPlane`].
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Axis {
+    /// The `q` coordinate.
     Q,
+    /// The `r` coordinate.
     R,
+    /// The derived `s = -q - r` coordinate.
     S,
 }
 
+/// An inclusive limit on a coordinate value.
+/// Used only by [`Clue::HalfPlane`].
 impl Display for Axis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
@@ -42,9 +80,13 @@ impl Display for Axis {
     }
 }
 
+/// An inclusive limit on a coordinate value.
+/// Used only by [`Clue::HalfPlane`].
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Bound {
+    /// The coordinate must be greater than or equal to the value.
     AtLeast(i32),
+    /// The coordinate must be less than or equal to the value.
     AtMost(i32),
 }
 
@@ -77,6 +119,7 @@ impl Bound {
     }
 }
 
+// internal helper for the weaken that needs to check if the nearer produces new_b within the map
 fn is_within_radius(cell: Cell, radius: u32) -> bool {
     let origin = Cell { q: 0, r: 0 };
     let Cell { q, r } = cell;
@@ -113,6 +156,8 @@ impl Clue {
     }
 
     /// Weaken this clue by the specified number of times, making it less restrictive.
+    /// Mainly designed for the Islands, but it may be used by any component with access to
+    /// `map_radius`.
     ///
     /// The weakening operation depends on the clue type:
     /// - [`Clue::Within`]: increases the radius by `times`, saturating at `u32::MAX`.
@@ -128,6 +173,8 @@ impl Clue {
     ///
     /// Returns an error if weakening a [`Clue::Nearer`] produces a new cell whose
     /// coordinates overflow `i32` or which is outside `map`.
+    /// The string inside the error does not matter, as the solution is always the same - reduce the
+    /// `times` param.
     pub fn weaken(self, map_radius: u32, times: u32) -> Result<Clue, String> {
         match self {
             Clue::Within { centre, radius } => Ok(Clue::Within {
@@ -254,4 +301,4 @@ impl Display for Clue {
 }
 
 #[cfg(test)]
-pub mod tests;
+mod tests;
