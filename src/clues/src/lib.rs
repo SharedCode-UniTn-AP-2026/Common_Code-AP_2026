@@ -1,8 +1,9 @@
-//! Clues that help the ship find the treasure
+//! Clues that help the ship find the treasure.
 //!
-//! A [`Clue`] describes a region of the map. [`Clue::holds`] tests whether a
-//! cell belongs to that region, [`Clue::weaken`] makes a clue less precise,
-//! and [`Clue::is_weaker_than`] compares two clues of the same kind.
+//! A [`Clue`] describes a region of the map.
+//! - [`Clue::holds`] tests whether cell belongs to that region.
+//! - [`Clue::weaken`] makes a clue less precise.
+//! - [`Clue::is_weaker_than`] compares two clues of the same kind.
 
 // TODO: logs
 
@@ -135,6 +136,10 @@ impl Clue {
     /// - [`Clue::Beyond`]: the cell is more than `radius` distance from `centre`.
     /// - [`Clue::HalfPlane`]: the cell's coordinate along `axis` satisfies `bound`.
     /// - [`Clue::Nearer`]: the cell is strictly closer to `a` than to `b`.
+    /// # Panics
+    ///
+    /// May panic if a coordinate is close to the limits of `i32`, as
+    /// [`Cell::s`] and [`Cell::distance`] do. This never happens for cells inside a map.
     #[must_use]
     pub fn holds(self, cell: Cell) -> bool {
         match self {
