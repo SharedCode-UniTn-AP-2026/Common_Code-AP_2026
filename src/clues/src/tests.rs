@@ -99,7 +99,7 @@ mod common_tests {
 
             // weakens the clues multiple times
             for times in [0, 1, 2, 3, 5] {
-                let Ok(weaker) = clue.weaken(&map, times) else {
+                let Ok(weaker) = clue.weaken(map.radius(), times) else {
                     assert!(matches!(clue, Clue::Nearer { .. }), "{clue:?}, times {times}");
                     continue;
                 };
@@ -152,7 +152,7 @@ mod common_tests {
         for clue in clues {
             for times in [2, 3, 5] {
                 let weaker = clue
-                    .weaken(&map, times)
+                    .weaken(map.radius(), times)
                     .unwrap_or_else(|e| panic!("{clue:?}, times {times}: {e}"));
 
                 assert_eq!(weaker.is_weaker_than(clue), Ok(true));
@@ -409,7 +409,7 @@ mod weaken_tests {
             radius: t,
         };
 
-        assert_eq!(within.weaken(&map, 2), Ok(expected_radius(6)));
+        assert_eq!(within.weaken(map.radius(), 2), Ok(expected_radius(6)));
     }
 
     #[test]
@@ -426,7 +426,7 @@ mod weaken_tests {
             radius: t,
         };
 
-        assert_eq!(within.weaken(&map, u32::MAX), Ok(expected_radius(u32::MAX)));
+        assert_eq!(within.weaken(map.radius(), u32::MAX), Ok(expected_radius(u32::MAX)));
     }
     #[test]
     fn half_plane_fully_relaxed_covers_whole_map() {
@@ -449,8 +449,8 @@ mod weaken_tests {
             bound: Bound::AtMost(-100),
         };
 
-        let weak_at_least = at_least.weaken(&map, u32::MAX).unwrap();
-        let weak_at_most = at_most.weaken(&map, u32::MAX).unwrap();
+        let weak_at_least = at_least.weaken(map.radius(), u32::MAX).unwrap();
+        let weak_at_most = at_most.weaken(map.radius(), u32::MAX).unwrap();
 
         assert_eq!(true_cells(&map, weak_at_least).len(), total);
         assert_eq!(true_cells(&map, weak_at_most).len(), total);
@@ -471,14 +471,14 @@ mod weaken_tests {
 
         // overshoots the i32 range by a lot: must clamp, not wrap or panic
         assert_eq!(
-            at_least.weaken(&map, u32::MAX),
+            at_least.weaken(map.radius(), u32::MAX),
             Ok(Clue::HalfPlane {
                 axis: Axis::Q,
                 bound: Bound::AtLeast(i32::MIN)
             })
         );
         assert_eq!(
-            at_most.weaken(&map, u32::MAX),
+            at_most.weaken(map.radius(), u32::MAX),
             Ok(Clue::HalfPlane {
                 axis: Axis::R,
                 bound: Bound::AtMost(i32::MAX)
@@ -487,14 +487,14 @@ mod weaken_tests {
 
         // lands exactly on the limit: exact result, no clamping needed
         assert_eq!(
-            at_least.weaken(&map, 1),
+            at_least.weaken(map.radius(), 1),
             Ok(Clue::HalfPlane {
                 axis: Axis::Q,
                 bound: Bound::AtLeast(i32::MIN)
             })
         );
         assert_eq!(
-            at_most.weaken(&map, 1),
+            at_most.weaken(map.radius(), 1),
             Ok(Clue::HalfPlane {
                 axis: Axis::R,
                 bound: Bound::AtMost(i32::MAX)
@@ -510,15 +510,18 @@ mod weaken_tests {
         let clue = Clue::Nearer { a, b };
 
         // times = 10 -> b' = (100, 0): exactly on the edge, still valid
-        assert_eq!(clue.weaken(&map, 10), Ok(Clue::Nearer { a, b: cell(100, 0) }));
+        assert_eq!(clue.weaken(map.radius(), 10), Ok(Clue::Nearer { a, b: cell(100, 0) }));
 
         // times = 11 -> b' = (110, 0): one step past the edge
-        assert_eq!(clue.weaken(&map, 11), Err("Nearer: new cell is outside the map".into()));
+        assert_eq!(
+            clue.weaken(map.radius(), 11),
+            Err("Nearer: new cell is outside the map, reduce times param".into())
+        );
 
         // huge times must be an error too, not an overflow or a wrap
         assert_eq!(
-            clue.weaken(&map, u32::MAX),
-            Err("Nearer: new cell is outside the map".into())
+            clue.weaken(map.radius(), u32::MAX),
+            Err("Nearer: coordinates overflow, reduce times param".into())
         );
     }
 
@@ -531,10 +534,13 @@ mod weaken_tests {
 
         // new_b = (-30 + 2t, 10 - t)
         // t = 65 -> (100, -55): q is exactly at the edge (s = -45), still valid
-        assert_eq!(clue.weaken(&map, 65), Ok(Clue::Nearer { a, b: cell(100, -55) }));
+        assert_eq!(clue.weaken(map.radius(), 65), Ok(Clue::Nearer { a, b: cell(100, -55) }));
 
         // t = 66 -> (102, -56): outside
-        assert_eq!(clue.weaken(&map, 66), Err("Nearer: new cell is outside the map".into()));
+        assert_eq!(
+            clue.weaken(map.radius(), 66),
+            Err("Nearer: new cell is outside the map, reduce times param".into())
+        );
     }
 
     #[test]
@@ -546,8 +552,8 @@ mod weaken_tests {
         };
 
         // no direction to scale along, so the clue comes back unchanged
-        assert_eq!(clue.weaken(&map, 5), Ok(clue));
-        assert_eq!(clue.weaken(&map, u32::MAX), Ok(clue));
+        assert_eq!(clue.weaken(map.radius(), 5), Ok(clue));
+        assert_eq!(clue.weaken(map.radius(), u32::MAX), Ok(clue));
     }
 
     #[test]
@@ -559,12 +565,12 @@ mod weaken_tests {
         };
 
         // times = 0 and 1 leave b where it is
-        assert_eq!(clue.weaken(&map, 0), Ok(clue));
-        assert_eq!(clue.weaken(&map, 1), Ok(clue));
+        assert_eq!(clue.weaken(map.radius(), 0), Ok(clue));
+        assert_eq!(clue.weaken(map.radius(), 1), Ok(clue));
 
         // times = 2 is the first value that actually moves b: (8, 0)
         assert_eq!(
-            clue.weaken(&map, 2),
+            clue.weaken(map.radius(), 2),
             Ok(Clue::Nearer {
                 a: cell(0, 0),
                 b: cell(8, 0)
