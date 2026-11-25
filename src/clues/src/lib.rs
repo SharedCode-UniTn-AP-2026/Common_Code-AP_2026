@@ -1,6 +1,5 @@
 #![deny(unsafe_code)]
 #![deny(clippy::pedantic)]
-// TODO: docs
 // #![deny(missing_docs)]
 
 use std::fmt::Display;
@@ -78,6 +77,13 @@ impl Bound {
     }
 }
 
+fn is_within_radius(cell: Cell, radius: u32) -> bool {
+    let origin = Cell { q: 0, r: 0 };
+    let Cell { q, r } = cell;
+    // unsigned_abs prevents a panic inside distance when it calls .s()
+    q.unsigned_abs() <= radius && r.unsigned_abs() <= radius && origin.distance(cell) <= radius
+}
+
 impl Clue {
     /// Return whether this clue is consistent with the treasure being in `cell`.
     ///
@@ -122,7 +128,7 @@ impl Clue {
     ///
     /// Returns an error if weakening a [`Clue::Nearer`] produces a new cell whose
     /// coordinates overflow `i32` or which is outside `map`.
-    pub fn weaken(self, map: &impl Map, times: u32) -> Result<Clue, String> {
+    pub fn weaken(self, map_radius: u32, times: u32) -> Result<Clue, String> {
         match self {
             Clue::Within { centre, radius } => Ok(Clue::Within {
                 centre,
@@ -159,12 +165,13 @@ impl Clue {
                 let new_r = i64::from(a.r) + k * dir_r;
 
                 let (Ok(q), Ok(r)) = (i32::try_from(new_q), i32::try_from(new_r)) else {
-                    return Err("Nearer: new cell is outside the map".into());
+                    return Err("Nearer: coordinates overflow, reduce times param".into());
                 };
 
                 let new_b = Cell { q, r };
-                if !map.contains(new_b) {
-                    return Err("Nearer: new cell is outside the map".into());
+
+                if !is_within_radius(new_b, map_radius) {
+                    return Err("Nearer: new cell is outside the map, reduce times param".into());
                 }
 
                 Ok(Clue::Nearer { a, b: new_b })
@@ -246,6 +253,5 @@ impl Display for Clue {
     }
 }
 
-// TODO: tests
 #[cfg(test)]
 pub mod tests;
