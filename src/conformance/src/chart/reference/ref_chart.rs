@@ -38,6 +38,8 @@ impl Chart for RefChart {
             return Err(GenError::VisionRangeTooHigh);
         }
 
+        dbg!("Passed 2");
+
         let mut map = match Self::map_generate(radius) {
             Ok(val) => val,
             Err(error) => {
@@ -46,17 +48,22 @@ impl Chart for RefChart {
             }
         };
 
+        dbg!("Generated non-empty map");
         // 3. Place `island_count` connected island footprints.
         Self::island_place(&mut rng, &mut map, params.island_count)?;
 
+        dbg!("Placed islands");
         let retries = 3;
 
         // 4. Place `cliff_count` cliffs (must not touch islands or sea corners/adjacent cells)
         Self::cliff_place(&mut rng, &mut map, params.cliff_count, retries)?;
 
+        dbg!("Placed cliffs");
+
         // 5. Place `rock_count` rocks on clear water (never on corners or adjacent cells).
         Self::rock_place(&mut rng, &mut map, params.rock_count, retries)?;
 
+        dbg!("Placed rocks");
         // 6. Connectivity Check: Verify clear water is fully connected without crossing rocks
         if !Self::water_connected(
             &map,
@@ -69,14 +76,16 @@ impl Chart for RefChart {
             return Err(GenError::WaterNotConnected);
         }
 
+        dbg!("Water is connected");
         // 7. Treasure Placement: Select clear water cell not adjacent to land/corners. Retry if impossible.
         let treasure = Self::treasure_place(&mut rng, &map)?;
 
+        dbg!("Treasure placed");
         // 8. Assign one CLUE to each Island (Section 4).
-        todo!();
+        // todo!();
 
         // 9. Solvability Check: Verify full clue intersection equals exactly 1 cell. Advance seed and retry if failed
-        todo!();
+        // todo!();
 
         Ok(Self {
             map,
