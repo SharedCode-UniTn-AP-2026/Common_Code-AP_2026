@@ -576,4 +576,20 @@ mod weaken_tests {
             })
         );
     }
+
+    #[test]
+    // NOTE: this behaviour might be subject to change
+    fn nearer_with_a_and_b_outside_the_map() {
+        // map radius 100; a = (150, 0) and b = (140, 0) are both off the map
+        let a = cell(150, 0);
+        let b = cell(140, 0); // direction (-10, 0), pointing back toward the map
+        let clue = Clue::Nearer { a, b };
+
+        // times = 2 -> b' = (130, 0): still outside, so it is rejected
+        assert!(clue.weaken(100, 2).is_err());
+
+        // times = 14 -> b' = (10, 0): lands back inside the map.
+        // weaken accepts it, even though both a and b are outside.
+        assert_eq!(clue.weaken(100, 14), Ok(Clue::Nearer { a, b: cell(10, 0) }));
+    }
 }
