@@ -27,6 +27,10 @@ impl Chart for RefChart {
     /// Generate the archipelago, returns a [`GenError`] if some step fails
     ///
     /// # Panics
+    ///
+    /// # Errors
+    ///
+    /// See [`GenError`] definitions
     fn generate(seed: Seed, params: &Params) -> Result<Self, GenError> {
         // 1. Seed reproducible random generator from the generation stream (not wall clock).
         let mut rng: ChaCha8Rng = ChaCha8Rng::seed_from_u64(seed);
@@ -47,23 +51,22 @@ impl Chart for RefChart {
                 Self::empty_map()
             }
         };
+        dbg!("Generated a map");
 
-        dbg!("Generated non-empty map");
         // 3. Place `island_count` connected island footprints.
         Self::island_place(&mut rng, &mut map, params.island_count)?;
-
         dbg!("Placed islands");
+
         let retries = 3;
 
         // 4. Place `cliff_count` cliffs (must not touch islands or sea corners/adjacent cells)
         Self::cliff_place(&mut rng, &mut map, params.cliff_count, retries)?;
-
         dbg!("Placed cliffs");
 
         // 5. Place `rock_count` rocks on clear water (never on corners or adjacent cells).
         Self::rock_place(&mut rng, &mut map, params.rock_count, retries)?;
-
         dbg!("Placed rocks");
+
         // 6. Connectivity Check: Verify clear water is fully connected without crossing rocks
         if !Self::water_connected(
             &map,
@@ -75,11 +78,10 @@ impl Chart for RefChart {
         ) {
             return Err(GenError::WaterNotConnected);
         }
-
         dbg!("Water is connected");
+
         // 7. Treasure Placement: Select clear water cell not adjacent to land/corners. Retry if impossible.
         let treasure = Self::treasure_place(&mut rng, &map)?;
-
         dbg!("Treasure placed");
         // 8. Assign one CLUE to each Island (Section 4).
         // todo!();
@@ -97,6 +99,10 @@ impl Chart for RefChart {
     }
 
     /// Decide whether an action is legal. The only way to obtain a `ValidatedAction`.
+    ///
+    /// # Errors
+    ///
+    /// See [`Rejection`] definitions
     fn validate(&self, ship: ShipId, action: &Action) -> Result<Self::ValidatedAction, Rejection> {
         todo!()
     }

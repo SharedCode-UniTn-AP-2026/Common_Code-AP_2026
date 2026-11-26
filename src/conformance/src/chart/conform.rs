@@ -44,16 +44,17 @@ pub fn deterministic_generation<C: Chart + PartialEq + Debug>() {
 /// generate_fail_params::<RefChart>();
 /// ```
 pub fn generate_fail_params<C: Chart + PartialEq + Debug>() {
-    let mut rng = rand::rng();
-    let seed: u64 = rng.random();
-
     #[derive(Debug)]
     struct TestCase {
+        #[allow(dead_code)]
         info: &'static str,
         archipelago_radius: u32,
         vision_range: u32,
         should_fail: bool,
     }
+
+    let mut rng = rand::rng();
+    let seed: u64 = rng.random();
 
     let cases = [
         TestCase {
@@ -104,16 +105,17 @@ pub fn generate_fail_params<C: Chart + PartialEq + Debug>() {
 /// generate_fail_island::<RefChart>();
 /// ```
 pub fn generate_fail_island<C: Chart + PartialEq + Debug>() {
-    let mut rng = rand::rng();
-    let seed: u64 = rng.random();
-
     #[derive(Debug)]
     struct TestCase {
+        #[allow(dead_code)]
         info: &'static str,
         archipelago_radius: u32,
         island_count: u8,
         should_fail: bool,
     }
+
+    let mut rng = rand::rng();
+    let seed: u64 = rng.random();
 
     let cases = [
         TestCase {
@@ -132,6 +134,12 @@ pub fn generate_fail_island<C: Chart + PartialEq + Debug>() {
             info: "Will fail as archipelago is not big enough",
             archipelago_radius: 1,
             island_count: 2,
+            should_fail: true,
+        },
+        TestCase {
+            info: "Will fail, no good candidate cells",
+            archipelago_radius: 1,
+            island_count: 1,
             should_fail: true,
         },
     ];

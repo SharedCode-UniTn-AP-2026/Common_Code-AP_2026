@@ -61,9 +61,17 @@ pub trait Chart: Sized {
     type ValidatedAction: Debug;
 
     /// Generate the archipelago, returns a [`GenError`] if some step fails
+    ///
+    /// # Errors
+    ///
+    /// See [`GenError`] definitions
     fn generate(seed: Seed, params: &Params) -> Result<Self, GenError>;
 
     /// Decide whether an action is legal. The only way to obtain a `ValidatedAction`.
+    ///
+    /// # Errors
+    ///
+    /// See [`Rejection`] definitions
     fn validate(&self, ship: ShipId, action: &Action) -> Result<Self::ValidatedAction, Rejection>;
 
     /// Apply an already validated action. Cannot fail.
