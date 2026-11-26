@@ -1,0 +1,11 @@
+[package]
+name = "ap-2026-common-code-islandtrait"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+common_shared = { package = "ap-2026-common-code-shared", path = "../shared" }
+common_clues = { package = "ap-2026-common-code-clues", path = "../clues" }

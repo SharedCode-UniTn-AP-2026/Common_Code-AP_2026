@@ -23,6 +23,10 @@ body:
               - Clues
               - Conformance
               - Messages 
+              - Views 
+              - ShipTrait
+              - IslandTrait 
+              - Logging
           default: 0
       validations:
           required: true

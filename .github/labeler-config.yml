@@ -18,3 +18,19 @@
 'messages':
   - changed-files:
       - any-glob-to-any-file: 'messages/**/*'
+
+'views':
+  - changed-files:
+      - any-glob-to-any-file: 'views/**/*'
+
+'shiptrait':
+  - changed-files:
+      - any-glob-to-any-file: 'shiptrait/**/*'
+
+'islandtrait':
+  - changed-files:
+      - any-glob-to-any-file: 'islandtrait/**/*'
+
+'logging':
+  - changed-files:
+      - any-glob-to-any-file: 'logging/**/*'
