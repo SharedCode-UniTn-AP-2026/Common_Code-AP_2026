@@ -130,7 +130,8 @@ impl Bound {
 fn is_within_radius(cell: Cell, radius: u32) -> bool {
     let origin = Cell { q: 0, r: 0 };
     let Cell { q, r } = cell;
-    // unsigned_abs prevents a panic inside distance when it calls .s()
+    // the && chain prevents a panic inside distance when it calls .s()
+    // because it would short circuit on the earlier comparisons first
     q.unsigned_abs() <= radius && r.unsigned_abs() <= radius && origin.distance(cell) <= radius
 }
 
@@ -150,6 +151,7 @@ impl Clue {
     pub fn holds(self, cell: Cell) -> bool {
         match self {
             Clue::Within { centre, radius } => cell.distance(centre) <= radius,
+            // strict > here is intentional to avoid overlap with Within
             Clue::Beyond { centre, radius } => cell.distance(centre) > radius,
             Clue::HalfPlane { axis, bound } => {
                 let v = match axis {
@@ -223,6 +225,7 @@ impl Clue {
                 let new_q = i64::from(a.q) + k * dir_q;
                 let new_r = i64::from(a.r) + k * dir_r;
 
+                // check if the coords can be converted back to i32
                 let (Ok(q), Ok(r)) = (i32::try_from(new_q), i32::try_from(new_r)) else {
                     return Err("Nearer: coordinates overflow, reduce times param".into());
                 };
