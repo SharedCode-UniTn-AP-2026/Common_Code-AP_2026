@@ -1,36 +1,80 @@
+//! This crate defines the Clue that help the ship locate the treasure.
+//! As per the protocol, a Clue is a predicate applied to cells. Geometrically a [`Clue`] describes a region of the map.
+//! The ships must combine the different types of clues that they posses, intersect them and filter
+//! out the faulty ones, in order to narrow down the possible location of the treasure.
+//! The possible sources of a Clue are:
+//! - an Island that may issue the same clue variant at different strength.
+//! - a Ship that forged the clue to confuse ther others.
+//!
+//! This crate provides the following methods that all operate on the clues:
+//! - [`Clue::holds`] tests whether a cell belongs to the map region produced by a Clue.
+//! - [`Clue::weaken`] makes a clue less precise by producing a "weaker" version of it.
+//! - [`Clue::is_weaker_than`] compares two clues of the same kind.
+
+// TODO: logs
+
 #![deny(unsafe_code)]
 #![deny(clippy::pedantic)]
-// TODO: docs
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 
 use std::fmt::Display;
 
 use crate::Bound::{AtLeast, AtMost};
 
-use geometry::{Cell, Map};
+use geometry::Cell;
 
-// TODO: logs
-
+/// A hint about the treasure's location, expressed as a region of the map.
 #[non_exhaustive]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Clue {
-    // No further than ‘radius‘ from ‘centre‘.
-    Within { centre: Cell, radius: u32 },
-    // Further than ‘radius‘ from ‘centre‘.
-    Beyond { centre: Cell, radius: u32 },
-    // The coordinate on ‘axis‘ satisfies ‘bound‘.
-    // The clue is atleast or atmost n on that axis
-    HalfPlane { axis: Axis, bound: Bound },
-    // Strictly closer to ‘a‘ than to ‘b‘.
-    Nearer { a: Cell, b: Cell },
+    /// The treasure is no further than `radius` from `centre` (inclusive).
+    /// Produces a disc, while excluding a ring. Everything within the disc satisfies this variant.
+    Within {
+        /// Centre of the region.
+        centre: Cell,
+        /// Largest distance from `centre` that still satisfies the clue.
+        radius: u32,
+    },
+    /// The treasure is further than `radius` from `centre` (strictly).
+    /// Excludes a disc from the map, producing a ring. Everything beyond the excluded disc satisfies this variant.
+    Beyond {
+        /// Centre of the excluded region.
+        centre: Cell,
+        /// Largest distance from `centre` that does *not* satisfy the clue.
+        radius: u32,
+    },
+    /// The treasure's coordinate on `axis` satisfies `bound`.
+    /// Produces a half-plane that splits the map with a straight line on one of the axes.
+    HalfPlane {
+        /// Coordinate the bound applies to.
+        axis: Axis,
+        /// Inclusive lower or upper limit on that coordinate.
+        bound: Bound,
+    },
+    /// The treasure is strictly closer to `a` than to `b`.
+    /// Interestingly enough, this also produces a half-plane, by separating the map with a perpendicular
+    /// bisector defined on the line between `a` and `b`.
+    Nearer {
+        /// The cell the treasure is closer to.
+        a: Cell,
+        /// The cell the treasure is further from.
+        b: Cell,
+    },
 }
+/// One of the three coordinates of a hexagonal cell.
+/// Used only by [`Clue::HalfPlane`].
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Axis {
+    /// The `q` coordinate.
     Q,
+    /// The `r` coordinate.
     R,
+    /// The derived `s = -q - r` coordinate.
     S,
 }
 
+/// An inclusive limit on a coordinate value.
+/// Used only by [`Clue::HalfPlane`].
 impl Display for Axis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
@@ -43,9 +87,13 @@ impl Display for Axis {
     }
 }
 
+/// An inclusive limit on a coordinate value.
+/// Used only by [`Clue::HalfPlane`].
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum Bound {
+    /// The coordinate must be greater than or equal to the value.
     AtLeast(i32),
+    /// The coordinate must be less than or equal to the value.
     AtMost(i32),
 }
 
@@ -61,7 +109,14 @@ impl Display for Bound {
 }
 
 impl Bound {
-    // if the overflow was to happen -> saturate i32
+    /// Relax this bound by the specified amount, making it less restrictive.
+    ///
+    /// - [`Bound::AtLeast`]: decreases the minimum coordinate value by `amount`,
+    ///   saturating at `i32::MIN = 0`.
+    /// - [`Bound::AtMost`]: increases the maximum coordinate value by `amount`,
+    ///   saturating at `i32::MAX`.
+    ///
+    /// If `amount` exceeds `i32::MAX`, it is treated as `i32::MAX`.
     fn relax(self, amount: u32) -> Bound {
         let a = i32::try_from(amount).unwrap_or(i32::MAX);
         match self {
@@ -71,12 +126,32 @@ impl Bound {
     }
 }
 
+// internal helper for the weaken that needs to check if the nearer produces new_b within the map
+fn is_within_radius(cell: Cell, radius: u32) -> bool {
+    let origin = Cell { q: 0, r: 0 };
+    let Cell { q, r } = cell;
+    // the && chain prevents a panic inside distance when it calls .s()
+    // because it would short circuit on the earlier comparisons first
+    q.unsigned_abs() <= radius && r.unsigned_abs() <= radius && origin.distance(cell) <= radius
+}
+
 impl Clue {
-    // True when this clue is consistent with the treasure lying in ‘cell‘.
+    /// Return whether this clue is consistent with the treasure being in `cell`.
+    ///
+    /// A clue holds if the cell satisfies the condition represented by the clue:
+    /// - [`Clue::Within`]: the cell is at most `radius` distance from `centre`.
+    /// - [`Clue::Beyond`]: the cell is more than `radius` distance from `centre`.
+    /// - [`Clue::HalfPlane`]: the cell's coordinate along `axis` satisfies `bound`.
+    /// - [`Clue::Nearer`]: the cell is strictly closer to `a` than to `b`.
+    /// # Panics
+    ///
+    /// May panic if a coordinate is close to the limits of `i32`, as
+    /// [`Cell::s`] and [`Cell::distance`] do. This never happens for cells inside a map.
     #[must_use]
     pub fn holds(self, cell: Cell) -> bool {
         match self {
             Clue::Within { centre, radius } => cell.distance(centre) <= radius,
+            // strict > here is intentional to avoid overlap with Within
             Clue::Beyond { centre, radius } => cell.distance(centre) > radius,
             Clue::HalfPlane { axis, bound } => {
                 let v = match axis {
@@ -93,8 +168,28 @@ impl Clue {
         }
     }
 
+    /// Weaken this clue by the specified number of times, making it less restrictive.
+    /// Mainly designed for the Islands, but it may be used by any component with access to
+    /// `map_radius`.
+    ///
+    /// The weakening operation depends on the clue type:
+    /// - [`Clue::Within`]: increases the radius by `times`, saturating at `u32::MAX`.
+    /// - [`Clue::Beyond`]: decreases the radius by `times`, saturating at `0`.
+    /// - [`Clue::HalfPlane`]: relaxes the coordinate bound by `times`.
+    /// - [`Clue::Nearer`]: moves `b` farther from `a` along the direction from `a` to `b`,
+    ///   multiplying their coordinate difference by `times`.
+    ///
+    /// For [`Clue::Nearer`], if `times` is less than `2` or `a == b`, the original
+    /// clue is returned unchanged.
+    ///
     /// # Errors
-    pub fn weaken(self, map: &impl Map, times: u32) -> Result<Clue, String> {
+    ///
+    /// Returns an error if weakening a [`Clue::Nearer`] produces a new cell whose
+    /// coordinates overflow `i32` or which is outside `map`.
+    /// The string inside the error does not matter, as the solution is always the same - reduce the
+    /// `times` param. Meaning that an island should not match on the strings, instead it should
+    /// match on result and reduces the `times` parameter in the `Err` arm.
+    pub fn weaken(self, map_radius: u32, times: u32) -> Result<Clue, String> {
         match self {
             Clue::Within { centre, radius } => Ok(Clue::Within {
                 centre,
@@ -102,7 +197,7 @@ impl Clue {
             }),
             Clue::Beyond { centre, radius } => Ok(Clue::Beyond {
                 centre,
-                radius: radius.saturating_sub(times), // sets the radius to u32::MIN if underflowed
+                radius: radius.saturating_sub(times), // sets the radius to u32::MIN = 0 if underflowed
             }),
             Clue::HalfPlane { axis, bound } => Ok(Clue::HalfPlane {
                 axis,
@@ -130,27 +225,40 @@ impl Clue {
                 let new_q = i64::from(a.q) + k * dir_q;
                 let new_r = i64::from(a.r) + k * dir_r;
 
+                // check if the coords can be converted back to i32
                 let (Ok(q), Ok(r)) = (i32::try_from(new_q), i32::try_from(new_r)) else {
-                    return Err("Nearer: new cell is outside the map".into());
+                    return Err("Nearer: coordinates overflow, reduce times param".into());
                 };
 
                 let new_b = Cell { q, r };
-                if !map.contains(new_b) {
-                    return Err("Nearer: new cell is outside the map".into());
+
+                if !is_within_radius(new_b, map_radius) {
+                    return Err("Nearer: new cell is outside the map, reduce times param".into());
                 }
 
                 Ok(Clue::Nearer { a, b: new_b })
             }
         }
     }
-    // returns true if self is weaker than other
-    // if self is atleast as strong as other -> returns false
-    // returns Err if the two clues are of different types
-    // useful for ships that will be trying to figure out if the clue they received is a weaker than
-    // a previous one
-    /// todo
+
+    /// Return whether self is strictly weaker than other, meaning every cell
+    /// that satisfies other also satisfies self, but not the other way around.
+    /// Equal clues are not weaker than each other, so the result is false.
+    /// Mainly intended fro the ships that want to understand if a clue received from an Island is better than the
+    /// last one issued by the same Island
+    ///
+    /// Two clues are comparable when they have the same kind and the same 'base':
+    /// - [`Clue::Within`]: same centre, the larger radius is weaker.
+    /// - [`Clue::Beyond`]: same centre, the smaller radius is weaker.
+    /// - [`Clue::HalfPlane`]: same axis and bound kind, a lower `AtLeast`
+    ///   or a higher `AtMost` is weaker.
+    /// - [`Clue::Nearer`]: same a, the clue whose b is further from a is weaker.
+    ///
     /// # Errors
     ///
+    /// Returns an error if the clues are of different kinds, or if they are of the
+    /// same kind but have different centre`s (or `a cells), different axis
+    /// values, or different bound kinds.
     pub fn is_weaker_than(self, other: Clue) -> Result<bool, String> {
         match (self, other) {
             //Two within clues
@@ -217,6 +325,5 @@ impl Display for Clue {
     }
 }
 
-// TODO: tests
 #[cfg(test)]
-pub mod tests;
+mod tests;
