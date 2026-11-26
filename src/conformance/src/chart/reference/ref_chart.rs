@@ -211,6 +211,7 @@ impl RefChart {
                     for _ in 2..=footprint {
                         if let Some(cell) = island_candidate
                             .ring(1)
+                            .filter(|c| map.contains(*c))
                             .find(|c| Self::island_filter(*c, map, &island_fp))
                         {
                             island_fp.push(cell);
