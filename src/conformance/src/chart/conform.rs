@@ -1,22 +1,22 @@
-use super::{Chart, GenErrItem, GenError};
+use super::Chart;
+use geometry::{Cell, Map, Terrain};
 use rand::RngExt;
 use shared::Params;
-use std::fmt::Debug;
 
-/// Deterministic generation, given a [`Seed`], [`Chart::generate`] should generate (or fail) the same way always.
-/// By default it runs 5 times with different seeds
+/// Deterministic generation, given a [`Seed`], two [`Chart::generate`] should succeed (or fail) the same way always.
+/// If a generation succeeds, the two generated [`Map`] are compared
+/// Runs 5 times
 ///
 /// # Panics
 ///
-/// Panics if the generation is not deterministic.
-/// Eg. given the same seed two different archipelagos are created or different errors are produced
+/// Panics if two implementations fail in different ways at different steps or if the generated [`Maps`] differ
 ///
 /// # Examples
 /// ```
-/// # use ap_2026_common_code_conformance::chart::{deterministic_generation, RefChart};
-/// deterministic_generation::<RefChart>();
+/// use ap_2026_common_code_conformance::chart::{generate, RefChart};
+/// generate::<RefChart, RefChart>();
 /// ```
-pub fn deterministic_generation<C: Chart + PartialEq + Debug>() {
+pub fn generate<C1: Chart, C2: Chart>() {
     for i in 0..=5 {
         let mut rng = rand::rng();
 
@@ -25,148 +25,59 @@ pub fn deterministic_generation<C: Chart + PartialEq + Debug>() {
 
         dbg!((i, seed));
 
-        let gen_1 = C::generate(seed, &params);
-        let gen_2 = C::generate(seed, &params);
+        let gen_1 = C1::generate(seed, &params);
+        let gen_2 = C2::generate(seed, &params);
 
-        assert_eq!(gen_1, gen_2);
-    }
-}
+        if gen_1.is_ok() && gen_2.is_ok() {
+            let ok_1 = gen_1.ok().unwrap();
+            let ok_2 = gen_2.ok().unwrap();
 
-/// Fails step 2 of generate, because `archipelago_radius` <= `vision_range`
-///
-/// # Panics
-///
-/// Panics if step 2 does not respect `archipelago_radius` <= `vision_range`
-///
-/// # Example
-/// ```
-/// # use ap_2026_common_code_conformance::chart::{generate_fail_params, RefChart};
-/// generate_fail_params::<RefChart>();
-/// ```
-pub fn generate_fail_params<C: Chart + PartialEq + Debug>() {
-    #[derive(Debug)]
-    struct TestCase {
-        #[allow(dead_code)]
-        info: &'static str,
-        archipelago_radius: u32,
-        vision_range: u32,
-        should_fail: bool,
-    }
+            let map_1 = ok_1.map();
+            let map_2 = ok_2.map();
 
-    let mut rng = rand::rng();
-    let seed: u64 = rng.random();
+            assert_eq!(map_1.radius(), map_2.radius());
 
-    let cases = [
-        TestCase {
-            info: "`archipelago_radius` == `vision_range`",
-            archipelago_radius: 10,
-            vision_range: 10,
-            should_fail: true,
-        },
-        TestCase {
-            info: "`archipelago_radius` < `vision_range`",
-            archipelago_radius: 9,
-            vision_range: 10,
-            should_fail: true,
-        },
-        TestCase {
-            info: "`archipelago_radius` > `vision_range`",
-            archipelago_radius: 10,
-            vision_range: 9,
-            should_fail: false,
-        },
-    ];
+            assert!(Cell { q: 0, r: 0 }.disc(map_1.radius()).all(|cell| {
+                if !map_1.contains(cell) || !map_2.contains(cell) {
+                    false
+                } else {
+                    let some_1 = map_1.terrain(cell).is_some();
+                    let some_2 = map_2.terrain(cell).is_some();
 
-    for tc in cases {
-        let params = Params::default()
-            .with_archipelago_radius(tc.archipelago_radius)
-            .with_vision_range(tc.vision_range);
+                    assert_eq!(some_1, some_2);
 
-        dbg!(&tc);
-        let gen_1 = C::generate(seed, &params);
+                    let t_1 = map_1.terrain(cell).unwrap();
+                    let t_2 = map_2.terrain(cell).unwrap();
 
-        if tc.should_fail {
-            assert_eq!(gen_1, Err(GenError::VisionRangeTooHigh));
+                    match t_1 {
+                        Terrain::Island(_) => matches!(t_2, Terrain::Island(_)),
+                        _ => t_1 == t_2,
+                    }
+                }
+            }));
         } else {
-            assert_ne!(gen_1, Err(GenError::VisionRangeTooHigh));
+            assert_eq!(gen_1.is_err(), gen_2.is_err());
+            let err_1 = gen_1.err();
+            let err_2 = gen_2.err();
+            assert_eq!(err_1, err_2);
         }
     }
 }
 
-/// Fails step 3 of generate, because archipelago cannot place `island_count`
-///
-/// # Panics
-///
-/// Panics if step 3 does not pass test
-///
-/// # Example
-/// ```
-/// # use ap_2026_common_code_conformance::chart::{generate_fail_island, RefChart};
-/// generate_fail_island::<RefChart>();
-/// ```
-pub fn generate_fail_island<C: Chart + PartialEq + Debug>() {
-    #[derive(Debug)]
-    struct TestCase {
-        #[allow(dead_code)]
-        info: &'static str,
-        archipelago_radius: u32,
-        island_count: u8,
-        should_fail: bool,
-    }
-
-    let mut rng = rand::rng();
-    let seed: u64 = rng.random();
-
-    let cases = [
-        TestCase {
-            info: "0 Islands, will never fail",
-            archipelago_radius: 12,
-            island_count: 0,
-            should_fail: false,
-        },
-        TestCase {
-            info: "1 Island, will never fail on a big enough archipelago",
-            archipelago_radius: 12,
-            island_count: 0,
-            should_fail: false,
-        },
-        TestCase {
-            info: "Will fail as archipelago is not big enough",
-            archipelago_radius: 1,
-            island_count: 2,
-            should_fail: true,
-        },
-        TestCase {
-            info: "Will fail, no good candidate cells",
-            archipelago_radius: 1,
-            island_count: 1,
-            should_fail: true,
-        },
-    ];
-
-    for tc in cases {
-        let params = Params::default()
-            .with_archipelago_radius(tc.archipelago_radius)
-            .with_island_count(tc.island_count)
-            .with_vision_range(tc.archipelago_radius - 1);
-
-        dbg!(&tc);
-        let gen_1 = C::generate(seed, &params);
-
-        if tc.should_fail {
-            assert_eq!(
-                gen_1,
-                Err(GenError::CantPlace {
-                    item: GenErrItem::Island
-                })
-            );
-        } else {
-            assert_ne!(
-                gen_1,
-                Err(GenError::CantPlace {
-                    item: GenErrItem::Island
-                })
-            );
-        }
-    }
+/// Check for validate actions
+pub fn _validate<C1: Chart, C2: Chart>() {
+    todo!()
 }
+
+/// Check for apply
+pub fn _apply<C1: Chart, C2: Chart>() {
+    todo!()
+}
+
+/// Check if two [`Chart`] advance in the same way
+pub fn _advance_round<C1: Chart, C2: Chart>() {
+    todo!()
+}
+
+/// Check if two [`Chart`] provide the same view to a [`Ship`]
+pub fn _view_for<C1: Chart, C2: Chart>() {}
