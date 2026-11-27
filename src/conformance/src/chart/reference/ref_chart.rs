@@ -1,5 +1,6 @@
 use super::map::{ConfMap, ConfMapErr, MapUpdatablecells};
 use crate::chart::{Action, Chart, GenErrItem, GenError, Outcome, Rejection, Report, ShipView, SpectatorView};
+use clues::{Axis, Bound, Clue};
 use geometry::{Cell, Map, Terrain};
 use rand::seq::IndexedRandom;
 use rand::{Rng, RngExt, SeedableRng};
@@ -41,7 +42,6 @@ impl Chart for RefChart {
         if radius <= params.vision_range {
             return Err(GenError::VisionRangeTooHigh);
         }
-
         dbg!("Passed 2");
 
         let mut map = match Self::map_generate(radius) {
@@ -54,7 +54,7 @@ impl Chart for RefChart {
         dbg!("Generated a map");
 
         // 3. Place `island_count` connected island footprints.
-        Self::island_place(&mut rng, &mut map, params.island_count)?;
+        let island_ids = Self::island_place(&mut rng, &mut map, params.island_count)?;
         dbg!("Placed islands");
 
         let retries = 3;
@@ -83,11 +83,17 @@ impl Chart for RefChart {
         // 7. Treasure Placement: Select clear water cell not adjacent to land/corners. Retry if impossible.
         let treasure = Self::treasure_place(&mut rng, &map)?;
         dbg!("Treasure placed");
+
         // 8. Assign one CLUE to each Island (Section 4).
-        // todo!();
+        let clues: Vec<Clue> = Self::clues_generate(&mut rng, treasure, params.island_count, &map, map.corners())?;
+        dbg!("Clues generated");
+
+        // TODO assign clues to islands
+        dbg!("Clues assigned");
 
         // 9. Solvability Check: Verify full clue intersection equals exactly 1 cell. Advance seed and retry if failed
-        // todo!();
+        Self::solvable(&map, &clues, treasure)?;
+        dbg!("Solvable!");
 
         Ok(Self {
             map,
@@ -196,11 +202,11 @@ impl RefChart {
     /// # Errors
     ///
     /// Returns [`GenError::CantPlace { item: GenErrorItem::Cliff }`] if cannot place any cliff after n-`retries`
-    fn island_place<'a, R: Rng + ?Sized, M: Map + MapUpdatablecells>(
+    fn island_place<R: Rng + ?Sized, M: Map + MapUpdatablecells>(
         rng: &mut R,
-        map: &'a mut M,
+        map: &mut M,
         islands: u8,
-    ) -> Result<&'a mut M, GenError> {
+    ) -> Result<Vec<IslandId>, GenError> {
         let corners = map.corners();
         let mut excluded = BTreeSet::new();
 
@@ -208,6 +214,8 @@ impl RefChart {
             excluded.insert(c);
             excluded.extend(c.ring(1));
         }
+
+        let mut island_ids = vec![];
 
         for _ in 0..islands {
             let candidates: Vec<Cell> = map.clear_cells().filter(|c| !excluded.contains(c)).collect();
@@ -254,10 +262,12 @@ impl RefChart {
                         item: GenErrItem::Island,
                     });
                 }
+
+                island_ids.push(island_id);
             }
         }
 
-        Ok(map)
+        Ok(island_ids)
     }
 
     /// Check for possible [`Island`] footprint candidate
@@ -380,18 +390,8 @@ impl RefChart {
     ///
     /// Returns [`GenError::CantPlace { item: GenErrorItem::Treasure }`] if a cell cannot be found
     fn treasure_place<R: Rng, M: Map>(rng: &mut R, map: &M) -> Result<Cell, GenError> {
-        let corners = map.corners();
-        let candidates: Vec<Cell> = map.clear_cells().filter(|c| !corners.contains(c)).collect();
-
-        let treasure_cell = (0..1).find_map(|_| {
-            let treasure_candidate = candidates.choose(rng)?;
-
-            treasure_candidate
-                .ring(1)
-                .filter(|c| map.contains(*c))
-                .all(|c| !map.is_land(c))
-                .then_some(treasure_candidate)
-        });
+        let candidates = Self::treasure_candidates(map);
+        let treasure_cell = candidates.choose(rng);
 
         let Some(treasure_selected) = treasure_cell else {
             return Err(GenError::CantPlace {
@@ -400,5 +400,188 @@ impl RefChart {
         };
 
         Ok(*treasure_selected)
+    }
+
+    /// Filters and return a vector containing the possible candidates for a treasure
+    fn treasure_candidates<M: Map>(map: &M) -> Vec<Cell> {
+        let corners = map.corners();
+        let mut excluded = BTreeSet::new();
+
+        for c in corners {
+            excluded.insert(c);
+            excluded.extend(c.ring(1));
+        }
+
+        map.water_cells()
+            .filter(|c| {
+                // Not a corner not adjacent to one
+                // Nor a rock
+                if excluded.contains(c) || map.terrain(*c).is_some_and(|t| t == Terrain::Rock) {
+                    false
+                } else {
+                    c.ring(1)
+                        .filter(|c_neib| map.contains(*c_neib))
+                        .all(|c_neib| !map.is_land(c_neib))
+                }
+            })
+            .collect()
+    }
+
+    /// Generates and assign a [`Clue`] to an [`Island`]
+    fn clues_generate<R: Rng, M: Map>(
+        rng: &mut R,
+        treasure: Cell,
+        islands: u8,
+        map: &M,
+        corners: [Cell; 6],
+    ) -> Result<Vec<Clue>, GenError> {
+        let radius = map.radius().cast_signed();
+        let num_islands = usize::from(islands);
+
+        let mut clues: Vec<Clue> = vec![];
+
+        let elim_thrshold = 1. / f64::from(islands);
+        let treasure_candidates = Self::treasure_candidates(map);
+
+        let mut retries: u8 = 0;
+
+        while clues.len() < num_islands && retries < 100 {
+            let clue = Self::clue_single_gen(rng, corners, treasure, radius);
+
+            if clue.holds(treasure) && Self::clue_eliminates(&clue, &treasure_candidates) >= elim_thrshold {
+                clues.push(clue);
+            } else {
+                retries += 1;
+            }
+        }
+
+        if clues.len() == num_islands {
+            Ok(clues)
+        } else {
+            Err(GenError::Unsolvable)
+        }
+    }
+
+    /// Generate a true [`Clue`]
+    fn clue_single_gen<R: Rng>(rng: &mut R, corners: [Cell; 6], treasure: Cell, radius: i32) -> Clue {
+        let clue_type: u8 = rng.random_range(0..=3);
+
+        // Clue::Within
+        if clue_type == 0 {
+            let centre = Self::cell_random(rng, treasure, radius);
+            let max_dist = corners.map(|c| centre.distance(c)).iter().max().unwrap().to_owned();
+
+            let min_dist = centre.distance(treasure);
+
+            Clue::Within {
+                centre,
+                radius: rng.random_range(min_dist..=max_dist),
+            }
+
+        // Clue::Beyond
+        } else if clue_type == 1 {
+            let centre = Self::cell_random(rng, treasure, radius);
+            let max_dist = centre.distance(treasure).saturating_sub(1);
+
+            Clue::Beyond {
+                centre,
+                radius: rng.random_range(0..=max_dist),
+            }
+        // Clue::HalfPlane
+        } else if clue_type == 2 {
+            let rng_axis: u8 = rng.random_range(0..=2);
+            let rng_bound: u8 = rng.random_range(0..=1);
+
+            let axis = match rng_axis {
+                1 => Axis::R,
+                2 => Axis::S,
+                _ => Axis::Q, // also matches 0 but clippy complains
+            };
+
+            let treasure_prop = match rng_axis {
+                1 => treasure.r,
+                2 => treasure.s(),
+                _ => treasure.q, // also matches 0 but clippy complains
+            };
+
+            Clue::HalfPlane {
+                axis,
+                bound: if rng_bound == 0 {
+                    let min_val = -radius;
+                    let max_val = treasure_prop;
+
+                    let k = rng.random_range(min_val..=max_val);
+
+                    Bound::AtLeast(k)
+                } else {
+                    let min_val = treasure_prop;
+                    let max_val = radius;
+
+                    let k = rng.random_range(min_val..=max_val);
+
+                    Bound::AtMost(k)
+                },
+            }
+
+        // Clue::Nearer
+        } else {
+            let cell_1 = Self::cell_random(rng, treasure, radius);
+            let cell_2 = Self::cell_random(rng, treasure, radius);
+
+            if cell_1.q == cell_2.q && cell_1.r == cell_2.r {
+                return Self::clue_single_gen(rng, corners, treasure, radius);
+            }
+
+            let c1_dist = treasure.distance(cell_1);
+            let c2_dist = treasure.distance(cell_2);
+
+            if c1_dist < c2_dist {
+                Clue::Nearer { a: cell_1, b: cell_2 }
+            } else {
+                Clue::Nearer { a: cell_2, b: cell_1 }
+            }
+        }
+    }
+
+    /// Calculates how much a [`Clue`] eliminates
+    #[allow(clippy::cast_precision_loss)]
+    fn clue_eliminates(clue: &Clue, candidates: &[Cell]) -> f64 {
+        let total = candidates.len();
+        let filtered = total - candidates.iter().filter(|c| clue.holds(**c)).count();
+
+        (filtered as f64) / (total as f64)
+    }
+
+    /// Helper function to pick a random [`Cell`] within a `radius`
+    /// that is not the treasure's [`Cell`]
+    fn cell_random<R: Rng>(rng: &mut R, treasure: Cell, radius: i32) -> Cell {
+        let q_rand = rng.random_range(-radius..=radius);
+        let r_rand = rng.random_range(-radius..=radius);
+
+        if treasure.q == q_rand && treasure.r == r_rand {
+            Self::cell_random(rng, treasure, radius)
+        } else {
+            Cell { q: q_rand, r: r_rand }
+        }
+    }
+
+    /// Checks wether game is solvable
+    ///
+    /// # Errors
+    ///
+    /// [`GenError::Unsolvable`] if the game is unsolvable
+    fn solvable<M: Map>(map: &M, clues: &[Clue], treasure: Cell) -> Result<(), GenError> {
+        if clues.is_empty() {
+            return Err(GenError::Unsolvable);
+        }
+
+        let mut candidates = Self::treasure_candidates(map);
+        candidates.retain(|cell| clues.iter().all(|clue| clue.holds(*cell)));
+
+        if candidates.len() > 1 || candidates[0] != treasure {
+            Err(GenError::Unsolvable)
+        } else {
+            Ok(())
+        }
     }
 }

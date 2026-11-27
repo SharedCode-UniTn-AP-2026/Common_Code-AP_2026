@@ -8,7 +8,9 @@ path = "src/lib.rs"
 
 [dependencies]
 shared.workspace = true
-geometry = { package = "ap-2026-common-code-geometry", path = "../geometry" }
+geometry.workspace = true
+clues.workspace = true
+islandtrait.workspace = true
 thiserror = "2.0.21"
 rand = "0.10.4"
 rand_chacha = "0.10.0"

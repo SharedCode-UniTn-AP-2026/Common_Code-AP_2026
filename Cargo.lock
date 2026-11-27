@@ -29,7 +29,9 @@ dependencies = [
 name = "ap-2026-common-code-conformance"
 version = "0.1.0"
 dependencies = [
+ "ap-2026-common-code-clues",
  "ap-2026-common-code-geometry",
+ "ap-2026-common-code-islandtrait",
  "ap-2026-common-code-shared",
  "rand",
  "rand_chacha",
