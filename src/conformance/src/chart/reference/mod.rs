@@ -1,3 +1,4 @@
+mod island;
 mod map;
 mod ref_chart;
 

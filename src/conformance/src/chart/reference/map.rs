@@ -49,8 +49,8 @@ impl Map for ConfMap {
     }
 
     fn clear_cells(&self) -> impl Iterator<Item = Cell> + '_ {
-        Cell { q: 0, r: 0 }.disc(self.radius()).filter(|&cell| {
-            if let Some(terr) = self.cells.get(&cell) {
+        Cell { q: 0, r: 0 }.disc(self.radius()).filter(|cell| {
+            if let Some(terr) = self.cells.get(cell) {
                 *terr == Terrain::Clear
             } else {
                 false
