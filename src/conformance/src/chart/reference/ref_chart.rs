@@ -27,51 +27,6 @@ pub enum RefValidatedAction {}
 
 /// A trait for a reference [`Chart`]
 pub trait RefChartTrait: Chart {
-    /// Generate a `BTreeMap<Cell,Terrain>` cells
-    ///
-    /// # Errors
-    ///
-    /// [`ConfMap::InvalidRadius`] if the `radius` exceeds the bounds
-    fn cells_generate(radius: u32) -> Result<BTreeMap<Cell, Terrain>, ConfMapErr> {
-        if !ConfMap::radius_bound(radius) {
-            return Err(ConfMapErr::InvalidRadius);
-        }
-
-        let rad: i32 = radius.cast_signed();
-        let neg_rad: i32 = -rad;
-
-        let mut cells: BTreeMap<Cell, Terrain> = BTreeMap::new();
-
-        for q in neg_rad..=rad {
-            let r_min = neg_rad.max(neg_rad.saturating_sub(q));
-            let r_max = rad.min(rad.saturating_sub(q));
-
-            for r in r_min..=r_max {
-                cells.insert(Cell { q, r }, Terrain::Clear);
-            }
-        }
-
-        Ok(cells)
-    }
-
-    /// Empty [`ConfMap`], used to recover invalid `map_generate`
-    #[must_use]
-    fn empty_map() -> ConfMap {
-        ConfMap::empty()
-    }
-
-    /// Generates a new [`ConfMap`]
-    ///
-    /// # Errors
-    ///
-    /// see [`ConfMap::init`]
-    fn map_generate(radius: u32) -> Result<ConfMap, ConfMapErr> {
-        let cells: BTreeMap<Cell, Terrain> = Self::cells_generate(radius)?;
-        let map = ConfMap::init(radius, cells)?;
-
-        Ok(map)
-    }
-
     /// Place `param.cliff_count` [`Terrain::Cliff`]
     ///
     /// # Errors
@@ -643,5 +598,50 @@ impl RefChart {
             .collect();
 
         islands
+    }
+
+    /// Empty [`ConfMap`], used to recover invalid `map_generate`
+    #[must_use]
+    fn empty_map() -> ConfMap {
+        ConfMap::empty()
+    }
+
+    /// Generates a new [`ConfMap`]
+    ///
+    /// # Errors
+    ///
+    /// see [`ConfMap::init`]
+    fn map_generate(radius: u32) -> Result<ConfMap, ConfMapErr> {
+        let cells: BTreeMap<Cell, Terrain> = Self::cells_generate(radius)?;
+        let map = ConfMap::init(radius, cells)?;
+
+        Ok(map)
+    }
+
+    /// Generate a `BTreeMap<Cell,Terrain>` cells
+    ///
+    /// # Errors
+    ///
+    /// [`ConfMap::InvalidRadius`] if the `radius` exceeds the bounds
+    fn cells_generate(radius: u32) -> Result<BTreeMap<Cell, Terrain>, ConfMapErr> {
+        if !ConfMap::radius_bound(radius) {
+            return Err(ConfMapErr::InvalidRadius);
+        }
+
+        let rad: i32 = radius.cast_signed();
+        let neg_rad: i32 = -rad;
+
+        let mut cells: BTreeMap<Cell, Terrain> = BTreeMap::new();
+
+        for q in neg_rad..=rad {
+            let r_min = neg_rad.max(neg_rad.saturating_sub(q));
+            let r_max = rad.min(rad.saturating_sub(q));
+
+            for r in r_min..=r_max {
+                cells.insert(Cell { q, r }, Terrain::Clear);
+            }
+        }
+
+        Ok(cells)
     }
 }

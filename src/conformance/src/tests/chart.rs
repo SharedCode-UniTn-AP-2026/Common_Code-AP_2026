@@ -48,12 +48,10 @@ pub fn generate_fail_params() {
         if tc.should_fail {
             assert!(gen_1.is_err());
             assert_eq!(gen_1.err().unwrap(), GenError::VisionRangeTooHigh);
+        } else if gen_1.is_err() {
+            assert_ne!(gen_1.err().unwrap(), GenError::VisionRangeTooHigh);
         } else {
-            if gen_1.is_err() {
-                assert_ne!(gen_1.err().unwrap(), GenError::VisionRangeTooHigh);
-            } else {
-                assert!(gen_1.is_ok());
-            }
+            assert!(gen_1.is_ok());
         }
     }
 }
@@ -117,12 +115,10 @@ pub fn generate_fail_island() {
                     item: GenErrItem::Island
                 }
             );
+        } else if gen_1.is_err() {
+            assert_ne!(gen_1.err().unwrap(), GenError::VisionRangeTooHigh);
         } else {
-            if gen_1.is_err() {
-                assert_ne!(gen_1.err().unwrap(), GenError::VisionRangeTooHigh);
-            } else {
-                assert!(gen_1.is_ok());
-            }
+            assert!(gen_1.is_ok());
         }
     }
 }
