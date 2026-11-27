@@ -1,5 +1,6 @@
 use geometry::{Cell, Map, Terrain};
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 use thiserror::Error;
 
 /// A reference [`Map`], used in [`RefChart`]
@@ -59,8 +60,17 @@ impl Map for ConfMap {
     }
 }
 
-pub trait MapUpdatablecells {
-    fn update_cell(&mut self, cell: Cell, terrain: Terrain) -> Result<bool, ConfMapErr>;
+/// Trait for a [`Map`] that permits to update the [`Cell`] without creating a brand new [`Map`] every time
+pub trait MapUpdatableCells: Map {
+    /// The error
+    type MapErr: Debug;
+
+    /// Updates the [`Cells`]
+    ///
+    /// # Errors
+    ///
+    /// [`Self::MapErr`]
+    fn update_cell(&mut self, cell: Cell, terrain: Terrain) -> Result<bool, Self::MapErr>;
 }
 
 impl ConfMap {
@@ -100,8 +110,10 @@ impl ConfMap {
     }
 }
 
-impl MapUpdatablecells for ConfMap {
-    fn update_cell(&mut self, cell: Cell, terrain: Terrain) -> Result<bool, ConfMapErr> {
+impl MapUpdatableCells for ConfMap {
+    type MapErr = ConfMapErr;
+
+    fn update_cell(&mut self, cell: Cell, terrain: Terrain) -> Result<bool, Self::MapErr> {
         if !self.contains(cell) {
             return Err(ConfMapErr::CellsOutside);
         }

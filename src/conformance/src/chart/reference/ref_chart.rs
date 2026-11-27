@@ -1,4 +1,4 @@
-use super::map::{ConfMap, ConfMapErr, MapUpdatablecells};
+use super::map::{ConfMap, ConfMapErr, MapUpdatableCells};
 use crate::chart::reference::island::ConfIsland;
 use crate::chart::{Action, Chart, GenErrItem, GenError, Outcome, Rejection, Report, ShipView, SpectatorView};
 use clues::{Axis, Bound, Clue};
@@ -32,7 +32,7 @@ pub trait RefChartTrait: Chart {
     /// # Errors
     ///
     /// Returns [`GenError::CantPlace { item: GenErrorItem::Cliff }`] if cannot place any cliff after n-`retries`
-    fn island_place<R: Rng + ?Sized, M: Map + MapUpdatablecells>(
+    fn island_place<R: Rng + ?Sized, M: Map + MapUpdatableCells>(
         rng: &mut R,
         map: &mut M,
         islands: u8,
@@ -113,7 +113,7 @@ pub trait RefChartTrait: Chart {
     /// # Errors
     ///
     /// Returns [`GenError::CantPlace { item: GenErrorItem::Cliff }`] if cannot place any cliff after n-`retries`
-    fn cliff_place<'a, R: Rng, M: Map + MapUpdatablecells>(
+    fn cliff_place<'a, R: Rng, M: Map + MapUpdatableCells>(
         rng: &mut R,
         map: &'a mut M,
         cliffs: u16,
@@ -162,7 +162,7 @@ pub trait RefChartTrait: Chart {
     /// # Errors
     ///
     /// Returns [`GenError::CantPlace { item: GenErrorItem::Rock }`] if cannot place any rock after n-`retries`
-    fn rock_place<'a, R: Rng, M: Map + MapUpdatablecells>(
+    fn rock_place<'a, R: Rng, M: Map + MapUpdatableCells>(
         rng: &mut R,
         map: &'a mut M,
         rocks: u16,
